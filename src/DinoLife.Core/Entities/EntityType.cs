@@ -1,3 +1,8 @@
+namespace DinoLife.Core.Entities;
+
+/// <summary>
+/// Type of entity
+/// </summary>
 [Flags]
 public enum EntityType
 {

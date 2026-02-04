@@ -1,3 +1,5 @@
+namespace DinoLife.Core.Entities;
+
 [Flags]
 public enum ComponentFlags
 {
