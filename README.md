@@ -48,7 +48,7 @@ DinoLife is a terminal-based life simulation featuring 4 entity types that creat
 
 ## Key Features (v1.0)
 
-- [ ] Real-time simulation at 60 TPS
+- [x] Real-time simulation at 60 TPS
 - [ ] 4 entity types with emergent behavior
 - [ ] Terminal visualization with stats HUD
 - [ ] Play/Pause/Speed controls
@@ -58,9 +58,58 @@ DinoLife is a terminal-based life simulation featuring 4 entity types that creat
 
 ## Status
 
-**Current Phase:** Planning  
-**Next Milestone:** [[Milestone-01|M1 - Core Architecture]]
+**Current Phase:** Milestone 1: Core Architecture & Foundation
+**Next Milestone:** Milestone 2: Entity Implementation
 
 ---
 
-*Last updated: 2026-02-04*
+## Build Instructions
+
+1. **Clone the repository:**
+
+```bash
+git clone https://github.com/SergioEslava/DinoLife.git
+cd DinoLife
+```
+
+2. **Restore NuGet packages:**
+
+```bash
+dotnet restore
+```
+
+3. **Build the solution in Release mode:**
+
+```bash
+dotnet build -c Release
+```
+
+## Running Tests:
+All unit tests use xUnit and FluentAssertions:
+
+### Run all tests in Release mode
+
+```bash
+dotnet test -c Release
+```
+
+## Running Benchmarks
+Benchmarks use **BenchmarkDotNet** and are located in **tests/DinoLife.Benchmarks**.
+
+### Run all benchmarks in Release mode
+
+```bash
+dotnet run --project tests/DinoLife.Benchmarks/DinoLife.Benchmarks.csproj -c Release
+```
+
+**Notes:**
+Always run in Release mode for reliable measurements.
+
+**BenchmarkDotNet** outputs results in:
+
+- Console logs (summary of mean execution times, memory usage)
+- HTML reports in BenchmarkDotNet.Artifacts/results/
+
+You can open the HTML files to visualize detailed performance metrics and compare baselines.
+
+---
