@@ -52,7 +52,7 @@ Establish solid technical foundation with zero functional features but productio
 - [x] FluentAssertions integration
 - [x] BenchmarkDotNet setup
 - [x] Test helpers and builders
-- [ ] CI/CD pipeline (GitHub Actions or equivalent)
+- [x] CI/CD pipeline (GitHub Actions or equivalent)
 
 #### 1.5 Documentation
 - [ ] README with build instructions
