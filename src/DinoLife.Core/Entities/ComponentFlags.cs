@@ -1,5 +1,9 @@
 namespace DinoLife.Core.Entities;
 
+/// <summary>
+/// Flags identifying which component data slots are populated for an entity.
+/// Used by the world to quickly test component membership.
+/// </summary>
 [Flags]
 public enum ComponentFlags
 {

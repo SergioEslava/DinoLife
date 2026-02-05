@@ -4,7 +4,8 @@ using DinoLife.Core.Components;
 namespace DinoLife.Core.World;
 
 /// <summary>
-/// Component Storage
+/// Centralized component storage using parallel arrays indexed by entity slot.
+/// Provides allocation and freeing of entity slots and exposes tick counter.
 /// </summary>
 public class Planet
 {
@@ -20,6 +21,9 @@ public class Planet
     private int _entityCount = 0;
     private int _tick;
     
+    /// <summary>
+    /// Allocate and return an available entity slot index. Throws when the world is full.
+    /// </summary>
     public int AllocateEntitySlot()
     {
         if (_freeSlots.Count > 0) {return _freeSlots.Pop();}
@@ -29,11 +33,18 @@ public class Planet
         return _entityCount++;
     }
     
+    /// <summary>
+    /// Free the slot at <paramref name="slot"/>, marking the entity dead and making the slot reusable.
+    /// </summary>
+    /// <param name="slot">Index of the entity slot to free.</param>
     public void FreeEntitySlot(int slot)
     {
         _entities[slot].IsAlive = false;
         _freeSlots.Push(slot);
     }
 
+    /// <summary>
+    /// Simulation tick counter incremented by the engine.
+    /// </summary>
     public int Tick {get => _tick; set => _tick = value;}
 }

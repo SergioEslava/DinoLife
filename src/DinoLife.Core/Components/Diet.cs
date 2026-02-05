@@ -11,6 +11,9 @@ public struct Diet
     public float EatingDuration;  // Seconds to consume
 }
 
+/// <summary>
+/// Types of food an entity can consume.
+/// </summary>
 public enum FoodType
 {
     None,

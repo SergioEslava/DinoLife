@@ -55,7 +55,7 @@ Establish solid technical foundation with zero functional features but productio
 - [x] CI/CD pipeline (GitHub Actions or equivalent)
 
 #### 1.5 Documentation
-- [ ] README with build instructions
+- [x] README with build instructions
 - [ ] Architecture diagram (ASCII or Mermaid)
 - [ ] Code documentation standards
 - [ ] ADR template
