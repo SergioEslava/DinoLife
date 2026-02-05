@@ -274,4 +274,17 @@ May add MessagePack (v1.1) or Serilog (v1.2) if justified.
 
 ---
 
-*Last updated: 2026-02-04*
+## Repository Status (2026-02-05)
+
+This section records the current implementation status of each ADR in the repository.
+
+- **ADR-001: Data-Oriented Hybrid** — Implemented (parallel arrays in `Planet`, struct components, systems).
+- **ADR-002: JSON for Persistence** — Not Implemented (there is a `DinoLife.Persistence` project; uses built-in `System.Text.Json`).
+- **ADR-003: Direct Console Rendering** — Planned/Partial. A `DinoLife.Rendering` project exists but a concrete terminal renderer is not found; renderer abstraction remains applicable.
+- **ADR-004: 60 TPS Fixed Timestep** — Implemented (`SimulationEngine.TickRate = 60.0`).
+- **ADR-005: Simple Stat Variation (No Genetics)** — Implemented conceptually (reproduction structs exist; no genetics system present).
+- **ADR-006: Entity Type Enum (Not Inheritance)** — Implemented (`EntityType` enum and `ComponentFlags`).
+- **ADR-007: Spatial Partitioning - Uniform Grid** — Planned. No uniform grid implementation detected; recommended as follow-up.
+- **ADR-008: No External Dependencies (Core)** — Implemented (core projects contain no external NuGet dependencies).
+
+*Last updated: 2026-02-05*

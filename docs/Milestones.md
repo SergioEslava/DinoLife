@@ -56,9 +56,9 @@ Establish solid technical foundation with zero functional features but productio
 
 #### 1.5 Documentation
 - [x] README with build instructions
-- [ ] Architecture diagram (ASCII or Mermaid)
-- [ ] Code documentation standards
-- [ ] ADR template
+- [x] Architecture diagram (ASCII or Mermaid)
+- [x] Code documentation standards
+- [x] ADR template
 
 ### Definition of Done
 - ✅ Empty simulation runs at locked 60 TPS
