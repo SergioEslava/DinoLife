@@ -6,7 +6,7 @@ namespace DinoLife.Core.World;
 /// <summary>
 /// Component Storage
 /// </summary>
-public class World
+public class Planet
 {
     private const int MAX_ENTITIES = 5000;
     
@@ -18,6 +18,7 @@ public class World
     private Diet[] _diets = new Diet[MAX_ENTITIES];
     private Stack<int> _freeSlots = new Stack<int>();
     private int _entityCount = 0;
+    private int _tick;
     
     public int AllocateEntitySlot()
     {
@@ -33,4 +34,6 @@ public class World
         _entities[slot].IsAlive = false;
         _freeSlots.Push(slot);
     }
+
+    public int Tick {get => _tick; set => _tick = value;}
 }

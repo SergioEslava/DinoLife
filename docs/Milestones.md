@@ -38,14 +38,14 @@ Establish solid technical foundation with zero functional features but productio
 - [x] `EntityType` enum (Herbivore, Carnivore, Plant, Scavenger)
 - [x] `ComponentFlags` enum
 - [x] Component structs: `Transform`, `Metabolism`, `Movement`, `Diet`, `Reproduction`
-- [ ] `World` class with component arrays (SoA layout)
+- [x] `World` class with component arrays (SoA layout)
 
 #### 1.3 Simulation Loop Infrastructure
-- [ ] `SimulationEngine` with fixed timestep
-- [ ] `ISystem` interface definition
-- [ ] Empty system implementations (stubs)
-- [ ] Performance timer abstraction
-- [ ] Main loop with tick counter
+- [x] `SimulationEngine` with fixed timestep
+- [x] `ISystem` interface definition
+- [x] Empty system implementations (stubs)
+- [x] Performance timer abstraction
+- [x] Main loop with tick counter
 
 #### 1.4 Testing Infrastructure
 - [ ] xUnit test projects configured
