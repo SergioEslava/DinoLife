@@ -7,7 +7,7 @@ namespace DinoLife.Tests.Entities;
 public class EntityTests
 {
     [Fact]
-    public void Constructor_Should_Create_Alive_Entity()
+    public void Entity_Constructor_SetsAliveAndId_WhenCreated()
     {
         var entity = new Entity(EntityType.Carnivore, ComponentFlags.Movement);
 
@@ -16,7 +16,7 @@ public class EntityTests
     }
 
     [Fact]
-    public void Has_Should_Return_True_When_Flag_Is_Present()
+    public void Entity_Has_ReturnsTrue_WhenFlagIsPresent_AndFalse_WhenFlagIsMissing()
     {
         var entity = new Entity(
             EntityType.Carnivore,
@@ -28,7 +28,7 @@ public class EntityTests
     }
 
     [Fact]
-    public void Kill_Should_Mark_Entity_As_Dead_And_Remove_Flags()
+    public void Entity_Kill_SetsIsAliveFalse_AndClearsFlags_WhenEntityIsAlive()
     {
         var entity = new Entity(
             EntityType.Carnivore,

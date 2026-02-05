@@ -18,7 +18,7 @@ public class SimulationEngineBenchmark
         // Engine with dummy systems
         var systems = new ISystem[]
         {
-            new TestSystem((_, _) => { }), 
+            new TestSystem((_, _) => { }),
             new TestSystem((_, _) => { }),
             new TestSystem((_, _) => { })
         };
@@ -26,25 +26,25 @@ public class SimulationEngineBenchmark
     }
 
     [Benchmark(Baseline = true)]
-    public void TickOnce_EmptyEngine()
+    public void SimulationEngine_TickOnce_Performance_EmptyEngine()
     {
         _engineEmpty.TickOnce();
     }
 
     [Benchmark]
-    public void TickOnce_EngineWithSystems()
+    public void SimulationEngine_TickOnce_Performance_WithSystems()
     {
         _engineWithSystems.TickOnce();
     }
 
     [Benchmark]
-    public void Step_EmptyEngine()
+    public void SimulationEngine_Step_Performance_EmptyEngine()
     {
         _engineEmpty.Step();
     }
 
     [Benchmark]
-    public void Step_EngineWithSystems()
+    public void SimulationEngine_Step_Performance_WithSystems()
     {
         _engineWithSystems.Step();
     }
@@ -57,4 +57,3 @@ internal sealed class TestSystem : ISystem
     public TestSystem(Action<Planet, double> onUpdate) => _onUpdate = onUpdate;
     public void Update(Planet world, double deltaTime) => _onUpdate(world, deltaTime);
 }
-

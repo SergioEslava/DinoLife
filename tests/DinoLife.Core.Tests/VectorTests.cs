@@ -4,28 +4,28 @@ using Xunit;
 
 namespace DinoLife.Tests.Utils;
 
-public class VectorTests()
+public class Vector2Tests
 {
     [Fact]
-    public void Constructor_Should_Create_Zero_Position()
+    public void Vector2_Constructor_CreatesZeroPosition_WhenNoArguments()
     {
         var vector = new Vector2();
 
-        (vector.X == 0f).Should().BeTrue();
-        (vector.Y == 0f).Should().BeTrue();
+        vector.X.Should().Be(0f);
+        vector.Y.Should().Be(0f);
     }
 
     [Fact]
-    public void Correct_Normalization()
+    public void Vector2_Normalized_ReturnsUnitVector_WhenVectorIsNonZero()
     {
-        var vector = new Vector2(3,4);
-        var vectorNorm = new Vector2(0.6f,0.8f);
+        var vector = new Vector2(3, 4);
+        var expected = new Vector2(0.6f, 0.8f);
 
-        (vector.Normalized()==vectorNorm).Should().BeTrue();
+        vector.Normalized().Should().Be(expected);
     }
 
     [Fact]
-    public void Multiply_By_Scalar_Should_Scale_Vector()
+    public void Vector2_MultiplyByScalar_ScalesVector_WhenVectorIsNonZero()
     {
         var vector = new Vector2(2, 3);
 
@@ -36,7 +36,7 @@ public class VectorTests()
     }
 
     [Fact]
-    public void Multiply_Scalar_By_Vector_Should_Scale_Vector()
+    public void Vector2_ScalarMultiply_VectorScalesCorrectly_WhenVectorIsNonZero()
     {
         var vector = new Vector2(2, 3);
 
@@ -46,7 +46,7 @@ public class VectorTests()
     }
 
     [Fact]
-    public void Magnitude_Should_Be_Correct()
+    public void Vector2_Magnitude_ReturnsCorrectValue_WhenVectorIsNonZero()
     {
         var vector = new Vector2(3, 4);
 
@@ -56,17 +56,15 @@ public class VectorTests()
     }
 
     [Fact]
-    public void Normalizing_Zero_Vector_Should_Return_Zero_Vector()
+    public void Vector2_Normalized_ReturnsZeroVector_WhenVectorIsZero()
     {
         var vector = new Vector2(0, 0);
 
-        Vector2 normalized = vector.Normalized();
-
-        normalized.Should().Be(new Vector2(0, 0));
+        vector.Normalized().Should().Be(new Vector2(0, 0));
     }
 
     [Fact]
-    public void Equality_Operator_Should_Return_True_For_Same_Values()
+    public void Vector2_EqualityOperator_ReturnsTrue_WhenVectorsHaveSameValues()
     {
         var a = new Vector2(1.5f, 2.5f);
         var b = new Vector2(1.5f, 2.5f);
@@ -75,7 +73,7 @@ public class VectorTests()
     }
 
     [Fact]
-    public void Inequality_Operator_Should_Return_True_For_Different_Values()
+    public void Vector2_InequalityOperator_ReturnsTrue_WhenVectorsHaveDifferentValues()
     {
         var a = new Vector2(1, 2);
         var b = new Vector2(2, 1);
@@ -84,12 +82,11 @@ public class VectorTests()
     }
 
     [Fact]
-    public void Equals_Should_Match_Operator_Equality()
+    public void Vector2_EqualsMethod_MatchesOperatorEquality_WhenVectorsHaveSameValues()
     {
         var a = new Vector2(5, 5);
         var b = new Vector2(5, 5);
 
         a.Equals(b).Should().BeTrue();
     }
-
 }
