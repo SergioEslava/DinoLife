@@ -1,0 +1,8 @@
+using DinoLife.Core.World;
+
+namespace DinoLife.Core.Systems;
+
+public class HuntingSystem : ISystem
+{
+    public void Update(Planet planet, double deltatime) {}
+}
