@@ -59,7 +59,8 @@ public class Program
                     _simulation!.Step();
                 }
 
-                renderer.Render(world);
+                WorldSnapshot snapshot = WorldSnapshotBuilder.Build(world);
+                renderer.Render(snapshot);
 
                 Thread.Sleep(16); // ~60fps
             }

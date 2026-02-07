@@ -1,9 +1,4 @@
 using System;
-using DinoLife.Core.Components;
-using DinoLife.Core.Entities;
-using DinoLife.Core.Utils;
-using DinoLife.Core.World;
-
 namespace DinoLife.Rendering.Terminal;
 
 /// <summary>
@@ -26,15 +21,15 @@ public sealed class TerminalRenderer : IRenderer
         _initialized = true;
     }
 
-    public void Render(Planet planet)
+    public void Render(WorldSnapshot snapshot)
     {
         if (!_initialized) { Initialize(); }
 
         EnsureBuffers();
         ClearBackBuffer();
 
-        DrawEntities(planet);
-        DrawHud(planet);
+        DrawEntities(snapshot);
+        DrawHud(snapshot);
 
         FlushDiffToConsole();
         SwapBuffers();
@@ -77,53 +72,24 @@ public sealed class TerminalRenderer : IRenderer
         Array.Fill(_backBuffer, ' ');
     }
 
-    private void DrawEntities(Planet planet)
+    private void DrawEntities(WorldSnapshot snapshot)
     {
-        Span<Entity> entities = planet.Entities.AsSpan(0, planet.EntityCount);
-        Span<Transform> transforms = planet.Transforms.AsSpan(0, planet.EntityCount);
-
-        int herbivores = 0;
-        int carnivores = 0;
-        int plants = 0;
-        int scavengers = 0;
-
-        for (int i = 0; i < entities.Length; i++)
+        for (int i = 0; i < snapshot.Entities.Length; i++)
         {
-            if (!entities[i].IsAlive) { continue; }
-            if (!entities[i].Has(ComponentFlags.Transform)) { continue; }
+            SnapshotEntity entity = snapshot.Entities[i];
+            if (!entity.IsAlive) { continue; }
 
-            Vector2 pos = transforms[i].Position;
-            int x = ToScreenX(pos.X, planet.WorldSize.X);
-            int y = ToScreenY(pos.Y, planet.WorldSize.Y);
+            int x = ToScreenX(entity.Position.X, snapshot.WorldSize.X);
+            int y = ToScreenY(entity.Position.Y, snapshot.WorldSize.Y);
 
-            char symbol = GetSymbol(entities[i].Type);
+            char symbol = GetSymbol(entity.Type);
             SetCell(x, y, symbol);
-
-            switch (entities[i].Type)
-            {
-                case EntityType.Herbivore:
-                    herbivores++;
-                    break;
-                case EntityType.Carnivore:
-                    carnivores++;
-                    break;
-                case EntityType.Plant:
-                    plants++;
-                    break;
-                case EntityType.Scavenger:
-                    scavengers++;
-                    break;
-            }
         }
-
-        _lastCounts = (herbivores, carnivores, plants, scavengers);
     }
 
-    private (int herbivores, int carnivores, int plants, int scavengers) _lastCounts;
-
-    private void DrawHud(Planet planet)
+    private void DrawHud(WorldSnapshot snapshot)
     {
-        string hud = $"Tick {planet.Tick}  H:{_lastCounts.herbivores} C:{_lastCounts.carnivores} P:{_lastCounts.plants} S:{_lastCounts.scavengers}";
+        string hud = $"Tick {snapshot.Tick}  H:{snapshot.Stats.Herbivores} C:{snapshot.Stats.Carnivores} P:{snapshot.Stats.Plants} S:{snapshot.Stats.Scavengers}";
         int y = _height - 1;
         for (int i = 0; i < _width; i++)
         {
@@ -188,14 +154,14 @@ public sealed class TerminalRenderer : IRenderer
         return Math.Clamp(iy, 0, _drawableHeight - 1);
     }
 
-    private static char GetSymbol(EntityType type)
+    private static char GetSymbol(DinoLife.Core.Entities.EntityType type)
     {
         return type switch
         {
-            EntityType.Herbivore => 'H',
-            EntityType.Carnivore => 'C',
-            EntityType.Plant => 'P',
-            EntityType.Scavenger => 'S',
+            DinoLife.Core.Entities.EntityType.Herbivore => 'H',
+            DinoLife.Core.Entities.EntityType.Carnivore => 'C',
+            DinoLife.Core.Entities.EntityType.Plant => 'P',
+            DinoLife.Core.Entities.EntityType.Scavenger => 'S',
             _ => '?'
         };
     }
