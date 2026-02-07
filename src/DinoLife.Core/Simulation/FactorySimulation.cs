@@ -14,6 +14,7 @@ public static class FactorySimulation
             new MovementSystem(),
             new MetabolismSystem(),
             new PlantGrowthSystem(),
+            new HuntingSystem(),
             new ReproductionSystem()
         };
 

@@ -152,7 +152,7 @@ public class Program
             {
                 flags |= ComponentFlags.Diet;
             }
-            if (type == EntityType.Herbivore)
+            if (type == EntityType.Herbivore || type == EntityType.Carnivore)
             {
                 flags |= ComponentFlags.Reproduction;
             }
@@ -203,13 +203,21 @@ public class Program
 
             if (flags.HasFlag(ComponentFlags.Reproduction))
             {
-                world.Reproductions[slot] = new Reproduction
-                {
-                    ReproductionThreshold = 80f,
-                    ReproductionCost = 30f,
-                    Cooldown = 0f,
-                    CooldownDuration = 90f
-                };
+                world.Reproductions[slot] = type == EntityType.Carnivore
+                    ? new Reproduction
+                    {
+                        ReproductionThreshold = 120f,
+                        ReproductionCost = 50f,
+                        Cooldown = 0f,
+                        CooldownDuration = 120f
+                    }
+                    : new Reproduction
+                    {
+                        ReproductionThreshold = 80f,
+                        ReproductionCost = 30f,
+                        Cooldown = 0f,
+                        CooldownDuration = 90f
+                    };
             }
         }
     }

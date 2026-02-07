@@ -41,7 +41,7 @@ public class ReproductionSystem : ISystem
 
             reproductions[i].Cooldown += deltaTime;
 
-            if (entities[i].Type != EntityType.Herbivore) { continue; }
+            if (entities[i].Type != EntityType.Herbivore && entities[i].Type != EntityType.Carnivore) { continue; }
             if (!reproductions[i].CanReproduce(metabolisms[i].Energy)) { continue; }
 
             int childSlot;
@@ -59,8 +59,8 @@ public class ReproductionSystem : ISystem
             entityArray[childSlot] = new Entity
             {
                 Id = Guid.NewGuid(),
-                Type = EntityType.Herbivore,
-                Flags = ComponentFlags.Transform | ComponentFlags.Movement | ComponentFlags.Metabolism | ComponentFlags.Diet | ComponentFlags.Reproduction,
+                Type = entities[i].Type,
+                Flags = entities[i].Flags,
                 IsAlive = true
             };
 

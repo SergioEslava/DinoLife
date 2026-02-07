@@ -1,3 +1,6 @@
+using DinoLife.Core.Components;
+using DinoLife.Core.Entities;
+using DinoLife.Core.Utils;
 using DinoLife.Core.World;
 
 namespace DinoLife.Core.Systems;
@@ -7,8 +10,70 @@ namespace DinoLife.Core.Systems;
 /// </summary>
 public class HuntingSystem : ISystem
 {
+    private const float HerbivoreEnergy = 40f;
+
     /// <summary>
     /// Execute hunting/detection logic for entities on the <paramref name="planet"/>.
     /// </summary>
-    public void Update(Planet planet, double deltatime) {}
+    public void Update(Planet planet, double deltatime)
+    {
+        Span<Entity> entities = planet.Entities.AsSpan(0, planet.EntityCount);
+        Span<Transform> transforms = planet.Transforms.AsSpan(0, planet.EntityCount);
+        Span<Metabolism> metabolisms = planet.Metabolisms.AsSpan(0, planet.EntityCount);
+        Span<Diet> diets = planet.Diets.AsSpan(0, planet.EntityCount);
+
+        for (int i = 0; i < entities.Length; i++)
+        {
+            if (!entities[i].IsAlive) { continue; }
+            if (!entities[i].Has(ComponentFlags.Diet)) { continue; }
+            if (!entities[i].Has(ComponentFlags.Transform)) { continue; }
+            if (!entities[i].Has(ComponentFlags.Metabolism)) { continue; }
+
+            if (diets[i].FoodType != FoodType.Herbivore) { continue; }
+
+            if (TryFindPrey(
+                    i,
+                    entities,
+                    transforms,
+                    diets[i].EatRadius,
+                    out int preyIndex))
+            {
+                entities[preyIndex].Kill();
+
+                metabolisms[i].Energy += HerbivoreEnergy * metabolisms[i].EnergyGainRate;
+                if (metabolisms[i].Energy > metabolisms[i].MaxEnergy)
+                {
+                    metabolisms[i].Energy = metabolisms[i].MaxEnergy;
+                }
+            }
+        }
+    }
+
+    private static bool TryFindPrey(
+        int hunterIndex,
+        Span<Entity> entities,
+        Span<Transform> transforms,
+        float radius,
+        out int preyIndex)
+    {
+        preyIndex = -1;
+        float radiusSq = radius * radius;
+        Vector2 hunterPos = transforms[hunterIndex].Position;
+
+        for (int i = 0; i < entities.Length; i++)
+        {
+            if (i == hunterIndex) { continue; }
+            if (!entities[i].IsAlive) { continue; }
+            if (entities[i].Type != EntityType.Herbivore) { continue; }
+            if (!entities[i].Has(ComponentFlags.Transform)) { continue; }
+
+            Vector2 delta = transforms[i].Position - hunterPos;
+            if (delta.LengthSquared() > radiusSq) { continue; }
+
+            preyIndex = i;
+            return true;
+        }
+
+        return false;
+    }
 }

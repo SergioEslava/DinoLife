@@ -11,7 +11,6 @@ namespace DinoLife.Core.Systems;
 public class MetabolismSystem : ISystem
 {
     private const float PlantEnergy = 25f;
-    private const float HerbivoreEnergy = 40f;
     private const float CorpseEnergy = 20f;
 
     /// <summary>
@@ -83,7 +82,7 @@ public class MetabolismSystem : ISystem
         => foodType switch
         {
             FoodType.Plant => GetPlantEnergy(targetIndex, entities, plants),
-            FoodType.Herbivore => HerbivoreEnergy,
+            FoodType.Herbivore => 0f,
             FoodType.Corpse => CorpseEnergy,
             _ => 0f
         };
@@ -138,7 +137,7 @@ public class MetabolismSystem : ISystem
         return foodType switch
         {
             FoodType.Plant => targetType == EntityType.Plant,
-            FoodType.Herbivore => targetType == EntityType.Herbivore,
+            FoodType.Herbivore => false,
             FoodType.Corpse => false,
             _ => false
         };
