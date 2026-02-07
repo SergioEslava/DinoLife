@@ -115,11 +115,11 @@ Implement all 4 entity types with complete behavior systems producing emergent p
 - [x] Reproduction when energy > threshold
 
 #### 2.5 Carnivore Entity
-- [ ] Herbivore detection in radius
-- [ ] Chase behavior
-- [ ] Hunting mechanics (catch + kill)
-- [ ] Energy from hunting
-- [ ] Reproduction when energy > threshold
+- [x] Herbivore detection in radius
+- [x] Chase behavior
+- [x] Hunting mechanics (catch + kill)
+- [x] Energy from hunting
+- [x] Reproduction when energy > threshold
 
 #### 2.6 Scavenger Entity
 - [ ] Corpse detection
