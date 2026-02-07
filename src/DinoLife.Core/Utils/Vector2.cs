@@ -30,6 +30,14 @@ public struct Vector2 : IEquatable<Vector2>
         this._y = y;
     }
 
+    public static Vector2 Zero => new Vector2(0f, 0f);
+
+    public static Vector2 operator +(Vector2 left, Vector2 right)
+        => new Vector2(left.X + right.X, left.Y + right.Y);
+
+    public static Vector2 operator -(Vector2 left, Vector2 right)
+        => new Vector2(left.X - right.X, left.Y - right.Y);
+
     public static Vector2 operator *(Vector2 v, float scalar) => new Vector2(v.X * scalar, v.Y * scalar);
     public static Vector2 operator *(float scalar, Vector2 v) =>  v * scalar;
 
@@ -70,4 +78,9 @@ public struct Vector2 : IEquatable<Vector2>
     /// Euclidean magnitude (length) of the vector.
     /// </summary>
     public float Magnitude() => MathF.Sqrt(X*X + Y*Y);
+
+    /// <summary>
+    /// Squared magnitude for cheaper distance checks.
+    /// </summary>
+    public float LengthSquared() => (X * X) + (Y * Y);
 }

@@ -1,5 +1,6 @@
-using DinoLife.Core.Entities;
 using DinoLife.Core.Components;
+using DinoLife.Core.Entities;
+using DinoLife.Core.Utils;
 
 namespace DinoLife.Core.World;
 
@@ -20,6 +21,11 @@ public class Planet
     private Stack<int> _freeSlots = new Stack<int>();
     private int _entityCount = 0;
     private int _tick;
+
+    /// <summary>
+    /// World boundaries used by movement wrapping.
+    /// </summary>
+    public Vector2 WorldSize { get; set; } = new Vector2(1000f, 1000f);
     
     /// <summary>
     /// Allocate and return an available entity slot index. Throws when the world is full.
@@ -42,6 +48,20 @@ public class Planet
         _entities[slot].IsAlive = false;
         _freeSlots.Push(slot);
     }
+
+    /// <summary>
+    /// Total number of allocated entity slots.
+    /// </summary>
+    public int EntityCount => _entityCount;
+
+    /// <summary>
+    /// Raw entity component storage arrays.
+    /// </summary>
+    public Entity[] Entities => _entities;
+    public Transform[] Transforms => _transforms;
+    public Movement[] Movements => _movements;
+    public Metabolism[] Metabolisms => _metabolisms;
+    public Diet[] Diets => _diets;
 
     /// <summary>
     /// Simulation tick counter incremented by the engine.
