@@ -1,5 +1,3 @@
-using DinoLife.Core.World;
-
 namespace DinoLife.Rendering;
 
 /// <summary>
@@ -13,9 +11,9 @@ public interface IRenderer
     void Initialize();
 
     /// <summary>
-    /// Render the current <paramref name="planet"/> state.
+    /// Render the current <paramref name="snapshot"/> state.
     /// </summary>
-    void Render(Planet planet);
+    void Render(WorldSnapshot snapshot);
 
     /// <summary>
     /// Release renderer resources.
