@@ -87,18 +87,18 @@ Implement all 4 entity types with complete behavior systems producing emergent p
 ### Deliverables
 
 #### 2.1 Movement System
-- [ ] `MovementSystem` with velocity integration
-- [ ] Boundary handling (wrap-around or bounce)
-- [ ] Random walk behavior for herbivores/scavengers
-- [ ] Chase/flee behaviors for carnivores/herbivores
-- [ ] Integration tests with 100 entities
+- [x] `MovementSystem` with velocity integration
+- [x] Boundary handling (wrap-around)
+- [x] Random walk behavior for herbivores/scavengers
+- [x] Chase/flee behaviors for carnivores/herbivores
+- [x] Integration tests with 100 entities
 
 #### 2.2 Metabolism System
-- [ ] `MetabolismSystem` with energy depletion
-- [ ] Energy gain from eating
-- [ ] Starvation mechanics
-- [ ] Energy thresholds for behaviors
-- [ ] Tests for energy balance
+- [x] `MetabolismSystem` with energy depletion
+- [x] Energy gain from eating
+- [x] Starvation mechanics
+- [x] Energy thresholds for behaviors
+- [x] Tests for energy balance
 
 #### 2.3 Plant Entity
 - [ ] Plant growth over time
@@ -425,13 +425,13 @@ Final polish, testing, and documentation for public release.
 
 ## Milestone Tracking
 
-| Milestone | Status | Start Date | End Date | Confidence |
-|-----------|--------|------------|----------|------------|
-| M1 - Foundation | 🔴 Not Started | TBD | TBD | High |
-| M2 - Entities | 🔴 Not Started | TBD | TBD | Medium |
-| M3 - Visualization | 🔴 Not Started | TBD | TBD | High |
-| M4 - Controls | 🔴 Not Started | TBD | TBD | High |
-| M5 - Release | 🔴 Not Started | TBD | TBD | High |
+| Milestone | Status | 
+|-----------|--------|
+| M1 - Foundation | 🟢 
+| M2 - Entities | 🟡 
+| M3 - Visualization | 🟡 
+| M4 - Controls | 🔴 
+| M5 - Release | 🔴 
 
 **Status Legend:**
 - 🔴 Not Started

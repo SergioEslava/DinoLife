@@ -76,7 +76,6 @@ public class SimulationEngine
         }
 
         _world.Tick++;
-        Console.WriteLine("Running tick: " + _world.Tick);
     }
 
     /// <summary>
