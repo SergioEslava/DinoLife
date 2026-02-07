@@ -1,16 +1,15 @@
 using DinoLife.Core.World;
 using DinoLife.Core.Systems;
+using System;
 
+namespace DinoLife.Core.Simulation;
+
+/// <summary>
+/// Fixed-timestep simulation runner that advances world state through systems.
+/// </summary>
 public class SimulationEngine
 {
-    /// <summary>
-    /// Target logic ticks per second.
-    /// </summary>
     public const double TickRate = 60.0;
-
-    /// <summary>
-    /// Duration of a single simulation tick in seconds.
-    /// </summary>
     public const double TickTime = 1.0 / TickRate;
 
     private readonly Planet _world;
@@ -19,21 +18,25 @@ public class SimulationEngine
 
     private double _accumulator;
     private double _lastTime;
-    private bool _running;
+    private bool _isStopped;
 
     /// <summary>
-    /// The simulation world being driven by this engine.
+    /// World instance being simulated.
     /// </summary>
     public Planet World => _world;
 
     /// <summary>
-    /// Creates a new simulation engine for the provided <paramref name="world"/> using
-    /// the given <paramref name="clock"/> and systems collection.
+    /// Whether the engine is currently stopped.
     /// </summary>
-    public SimulationEngine(
-        Planet world,
-        IClock clock,
-        IEnumerable<ISystem> systems)
+    public bool IsStopped => _isStopped;
+
+    /// <summary>
+    /// Create a new simulation engine instance.
+    /// </summary>
+    /// <param name="world">World to update.</param>
+    /// <param name="clock">Clock used to measure real time.</param>
+    /// <param name="systems">Systems that will update the world.</param>
+    public SimulationEngine(Planet world, IClock clock, IEnumerable<ISystem> systems)
     {
         _world = world;
         _clock = clock;
@@ -42,32 +45,28 @@ public class SimulationEngine
     }
 
     /// <summary>
-    /// Advance the simulation according to the clock. Accumulates real time and
-    /// executes the required number of fixed logic ticks.
+    /// Avanza la simulación según el tiempo real acumulado.
     /// </summary>
     public void Step()
     {
-            double currentTime = _clock.Now;
-            double frameTime = currentTime - _lastTime;
-            _lastTime = currentTime;
+        if (_isStopped) { return; }
 
-            _accumulator += frameTime;
+        double currentTime = _clock.Now;
+        double frameTime = currentTime - _lastTime;
+        _lastTime = currentTime;
 
-            int ticksToRun = (int)(_accumulator * TickRate);
+        _accumulator += frameTime;
 
-            if (ticksToRun <= 0) { return; }
+        int ticksToRun = (int)(_accumulator * TickRate);
+        if (ticksToRun <= 0) {return;}
 
-            for (int i = 0; i < ticksToRun; i++)
-            {
-                TickOnce();
-            }
+        for (int i = 0; i < ticksToRun; i++){TickOnce();}
 
-            _accumulator -= ticksToRun * TickTime;
+        _accumulator -= ticksToRun * TickTime;
     }
 
     /// <summary>
-    /// Execute a single fixed logic tick. Calls <see cref="ISystem.Update"/> on each system
-    /// with a fixed delta time of <see cref="TickTime"/>.
+    /// Ejecuta un tick discreto de la simulación.
     /// </summary>
     public void TickOnce()
     {
@@ -77,23 +76,28 @@ public class SimulationEngine
         }
 
         _world.Tick++;
+        Console.WriteLine("Running tick: " + _world.Tick);
     }
 
     /// <summary>
-    /// Run the engine loop until <see cref="Stop"/> is called.
-    /// This method blocks the calling thread.
+    /// Detiene la simulación evitando que el tiempo acumulado siga creciendo.
     /// </summary>
-    public void Run()
+    public void Stop()
     {
-        _running = true;
-        while (_running)
-        {
-            Step();
-        }
+        if (_isStopped) { return; }
+
+        _isStopped = true;
+        _accumulator = 0;
     }
 
     /// <summary>
-    /// Stops the run loop started by <see cref="Run"/>.
+    /// Reanuda la simulación reiniciando el tiempo base para evitar saltos.
     /// </summary>
-    public void Stop() => _running = false;
+    public void Resume()
+    {
+        if (!_isStopped) { return; }
+
+        _isStopped = false;
+        _lastTime = _clock.Now;
+    }
 }
