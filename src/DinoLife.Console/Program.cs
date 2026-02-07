@@ -152,6 +152,10 @@ public class Program
             {
                 flags |= ComponentFlags.Diet;
             }
+            if (type == EntityType.Herbivore)
+            {
+                flags |= ComponentFlags.Reproduction;
+            }
 
             world.Entities[slot] = new Entity
             {
@@ -194,6 +198,17 @@ public class Program
                     DetectionRadius = 20f,
                     EatRadius = 2f,
                     EatingDuration = 1f
+                };
+            }
+
+            if (flags.HasFlag(ComponentFlags.Reproduction))
+            {
+                world.Reproductions[slot] = new Reproduction
+                {
+                    ReproductionThreshold = 80f,
+                    ReproductionCost = 30f,
+                    Cooldown = 0f,
+                    CooldownDuration = 90f
                 };
             }
         }

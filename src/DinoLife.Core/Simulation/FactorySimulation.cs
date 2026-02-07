@@ -13,7 +13,8 @@ public static class FactorySimulation
             new BehaviorSystem(),
             new MovementSystem(),
             new MetabolismSystem(),
-            new PlantGrowthSystem()
+            new PlantGrowthSystem(),
+            new ReproductionSystem()
         };
 
         return new SimulationEngine(world, clock, systems);

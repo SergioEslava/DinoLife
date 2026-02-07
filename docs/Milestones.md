@@ -108,11 +108,11 @@ Implement all 4 entity types with complete behavior systems producing emergent p
 - [x] Tests for growth curves
 
 #### 2.4 Herbivore Entity
-- [ ] Plant detection in radius
-- [ ] Movement towards nearest plant
-- [ ] Eating behavior (energy transfer)
-- [ ] Flee from carnivores
-- [ ] Reproduction when energy > threshold
+- [x] Plant detection in radius
+- [x] Movement towards nearest plant
+- [x] Eating behavior (energy transfer)
+- [x] Flee from carnivores
+- [x] Reproduction when energy > threshold
 
 #### 2.5 Carnivore Entity
 - [ ] Herbivore detection in radius
