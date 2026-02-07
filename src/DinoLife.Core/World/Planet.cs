@@ -18,6 +18,7 @@ public class Planet
     private Metabolism[] _metabolisms = new Metabolism[MAX_ENTITIES];
     private Movement[] _movements = new Movement[MAX_ENTITIES];
     private Diet[] _diets = new Diet[MAX_ENTITIES];
+    private Plant[] _plants = new Plant[MAX_ENTITIES];
     private Stack<int> _freeSlots = new Stack<int>();
     private int _entityCount = 0;
     private int _tick;
@@ -62,6 +63,7 @@ public class Planet
     public Movement[] Movements => _movements;
     public Metabolism[] Metabolisms => _metabolisms;
     public Diet[] Diets => _diets;
+    public Plant[] Plants => _plants;
 
     /// <summary>
     /// Simulation tick counter incremented by the engine.

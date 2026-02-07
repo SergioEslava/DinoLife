@@ -14,6 +14,7 @@ public static class WorldSnapshotBuilder
     {
         Span<Entity> entities = planet.Entities.AsSpan(0, planet.EntityCount);
         Span<Transform> transforms = planet.Transforms.AsSpan(0, planet.EntityCount);
+        Span<DinoLife.Core.Components.Plant> plantComponents = planet.Plants.AsSpan(0, planet.EntityCount);
 
         SnapshotEntity[] snapshotEntities = new SnapshotEntity[entities.Length];
 
@@ -26,9 +27,15 @@ public static class WorldSnapshotBuilder
         {
             Entity entity = entities[i];
             Vector2 position = transforms[i].Position;
-            snapshotEntities[i] = new SnapshotEntity(entity.Type, position, entity.IsAlive);
+            bool isAlive = entity.IsAlive;
+            if (entity.Type == EntityType.Plant && entity.Has(ComponentFlags.Plant) && !plantComponents[i].IsActive)
+            {
+                isAlive = false;
+            }
 
-            if (!entity.IsAlive) { continue; }
+            snapshotEntities[i] = new SnapshotEntity(entity.Type, position, isAlive);
+
+            if (!isAlive) { continue; }
 
             switch (entity.Type)
             {

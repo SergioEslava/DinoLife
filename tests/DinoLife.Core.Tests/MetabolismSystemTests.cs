@@ -30,7 +30,7 @@ public class MetabolismSystemTests
     {
         var world = new Planet();
         int herbivore = CreateEntity(world, EntityType.Herbivore, new Vector2(5f, 5f));
-        int plant = CreateEntity(world, EntityType.Plant, new Vector2(6f, 5f), hasDiet: false, hasMetabolism: false);
+        int plant = CreatePlant(world, new Vector2(6f, 5f), energy: 30f);
 
         world.Metabolisms[herbivore].Energy = 10f;
         world.Metabolisms[herbivore].MaxEnergy = 100f;
@@ -47,7 +47,7 @@ public class MetabolismSystemTests
         system.Update(world, 1.0 / 60.0);
 
         world.Metabolisms[herbivore].Energy.Should().BeGreaterThan(10f);
-        world.Entities[plant].IsAlive.Should().BeFalse();
+        world.Plants[plant].IsActive.Should().BeFalse();
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class MetabolismSystemTests
     {
         var world = new Planet();
         int herbivore = CreateEntity(world, EntityType.Herbivore, new Vector2(1f, 1f));
-        CreateEntity(world, EntityType.Plant, new Vector2(2f, 1f), hasDiet: false, hasMetabolism: false);
+        CreatePlant(world, new Vector2(2f, 1f), energy: 30f);
 
         world.Metabolisms[herbivore].Energy = 99f;
         world.Metabolisms[herbivore].MaxEnergy = 100f;
@@ -122,6 +122,32 @@ public class MetabolismSystemTests
                 EnergyGainRate = 1.0f
             };
         }
+
+        return slot;
+    }
+
+    private static int CreatePlant(Planet world, Vector2 position, float energy)
+    {
+        int slot = world.AllocateEntitySlot();
+
+        world.Entities[slot] = new Entity
+        {
+            Id = Guid.NewGuid(),
+            Type = EntityType.Plant,
+            Flags = ComponentFlags.Transform | ComponentFlags.Plant,
+            IsAlive = true
+        };
+
+        world.Transforms[slot] = new Transform(position);
+        world.Plants[slot] = new Plant
+        {
+            Energy = energy,
+            MaxEnergy = energy,
+            GrowthRate = 0f,
+            RespawnTime = 10f,
+            RespawnTimer = 0f,
+            IsActive = true
+        };
 
         return slot;
     }

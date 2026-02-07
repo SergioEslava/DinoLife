@@ -12,5 +12,6 @@ public enum ComponentFlags
     Metabolism = 1 << 1,
     Movement = 1 << 2,
     Diet = 1 << 3,
-    Reproduction = 1 << 4
+    Reproduction = 1 << 4,
+    Plant = 1 << 5
 }
