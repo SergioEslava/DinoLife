@@ -75,10 +75,62 @@ public class Program
     {
         var rng = new Random(1234);
 
-        CreateEntities(world, EntityType.Plant, count: 60, rng, hasMovement: false, speed: 0f);
+        CreatePlantEntities(world, count: 60, rng);
         CreateEntities(world, EntityType.Herbivore, count: 20, rng, hasMovement: true, speed: 3f);
         CreateEntities(world, EntityType.Carnivore, count: 8, rng, hasMovement: true, speed: 4f);
         CreateEntities(world, EntityType.Scavenger, count: 12, rng, hasMovement: true, speed: 2.5f);
+    }
+
+    private static void CreatePlantEntities(Planet world, int count, Random rng)
+    {
+        Vector2[] positions = GenerateJitteredGrid(count, world.WorldSize, rng);
+        for (int i = 0; i < count; i++)
+        {
+            int slot = world.AllocateEntitySlot();
+
+            world.Entities[slot] = new Entity
+            {
+                Id = Guid.NewGuid(),
+                Type = EntityType.Plant,
+                Flags = ComponentFlags.Transform | ComponentFlags.Plant,
+                IsAlive = true
+            };
+
+            world.Transforms[slot] = new Transform(positions[i]);
+            world.Plants[slot] = new Plant
+            {
+                Energy = 20f,
+                MaxEnergy = 50f,
+                GrowthRate = 0.5f,
+                RespawnTime = 30f,
+                RespawnTimer = 0f,
+                IsActive = true
+            };
+        }
+    }
+
+    private static Vector2[] GenerateJitteredGrid(int count, Vector2 worldSize, Random rng)
+    {
+        int columns = (int)MathF.Ceiling(MathF.Sqrt(count));
+        int rows = (int)MathF.Ceiling(count / (float)columns);
+        float cellWidth = worldSize.X / columns;
+        float cellHeight = worldSize.Y / rows;
+
+        Vector2[] positions = new Vector2[count];
+        int index = 0;
+        for (int y = 0; y < rows && index < count; y++)
+        {
+            for (int x = 0; x < columns && index < count; x++)
+            {
+                float jitterX = (float)rng.NextDouble() * cellWidth * 0.6f;
+                float jitterY = (float)rng.NextDouble() * cellHeight * 0.6f;
+                float px = (x * cellWidth) + (cellWidth * 0.2f) + jitterX;
+                float py = (y * cellHeight) + (cellHeight * 0.2f) + jitterY;
+                positions[index++] = new Vector2(px, py);
+            }
+        }
+
+        return positions;
     }
 
     private static void CreateEntities(
@@ -93,7 +145,7 @@ public class Program
         {
             int slot = world.AllocateEntitySlot();
 
-            var flags = ComponentFlags.Transform;
+            ComponentFlags flags = ComponentFlags.Transform;
             if (hasMovement) { flags |= ComponentFlags.Movement; }
             if (type != EntityType.Plant) { flags |= ComponentFlags.Metabolism; }
             if (type == EntityType.Herbivore || type == EntityType.Carnivore)

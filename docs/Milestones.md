@@ -101,11 +101,11 @@ Implement all 4 entity types with complete behavior systems producing emergent p
 - [x] Tests for energy balance
 
 #### 2.3 Plant Entity
-- [ ] Plant growth over time
-- [ ] Energy provision when eaten
-- [ ] Respawn mechanics
-- [ ] Spatial distribution algorithm
-- [ ] Tests for growth curves
+- [x] Plant growth over time
+- [x] Energy provision when eaten
+- [x] Respawn mechanics
+- [x] Spatial distribution algorithm
+- [x] Tests for growth curves
 
 #### 2.4 Herbivore Entity
 - [ ] Plant detection in radius

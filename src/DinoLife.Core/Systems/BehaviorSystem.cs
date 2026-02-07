@@ -27,6 +27,7 @@ public class BehaviorSystem : ISystem
         Span<Movement> movements = planet.Movements.AsSpan(0, planet.EntityCount);
         Span<Metabolism> metabolisms = planet.Metabolisms.AsSpan(0, planet.EntityCount);
         Span<Diet> diets = planet.Diets.AsSpan(0, planet.EntityCount);
+        Span<Plant> plants = planet.Plants.AsSpan(0, planet.EntityCount);
 
         for (int i = 0; i < entities.Length; i++)
         {
@@ -37,11 +38,11 @@ public class BehaviorSystem : ISystem
             switch (entities[i].Type)
             {
                 case EntityType.Carnivore:
-                    HandleCarnivore(planet, i, entities, transforms, movements, metabolisms, diets);
+                    HandleCarnivore(planet, i, entities, transforms, movements, metabolisms, diets, plants);
                     break;
 
                 case EntityType.Herbivore:
-                    HandleHerbivore(planet, i, entities, transforms, movements, metabolisms, diets);
+                    HandleHerbivore(planet, i, entities, transforms, movements, metabolisms, diets, plants);
                     break;
 
                 case EntityType.Scavenger:
@@ -58,12 +59,13 @@ public class BehaviorSystem : ISystem
         Span<Transform> transforms,
         Span<Movement> movements,
         Span<Metabolism> metabolisms,
-        Span<Diet> diets)
+        Span<Diet> diets,
+        Span<Plant> plants)
     {
         if (IsHungry(entities, index, metabolisms) && HasDiet(entities, index, diets, FoodType.Herbivore))
         {
             float radius = diets[index].DetectionRadius > 0f ? diets[index].DetectionRadius : ChaseRadius;
-            if (TryFindNearest(EntityType.Herbivore, index, entities, transforms, radius, out Vector2 chaseDirection))
+            if (TryFindNearest(EntityType.Herbivore, index, entities, transforms, plants, radius, out Vector2 chaseDirection))
             {
                 movements[index].SetDirection(chaseDirection);
                 return;
@@ -75,6 +77,7 @@ public class BehaviorSystem : ISystem
                 index,
                 entities,
                 transforms,
+                plants,
                 ChaseRadius,
                 out Vector2 fallbackDirection))
         {
@@ -92,12 +95,13 @@ public class BehaviorSystem : ISystem
         Span<Transform> transforms,
         Span<Movement> movements,
         Span<Metabolism> metabolisms,
-        Span<Diet> diets)
+        Span<Diet> diets,
+        Span<Plant> plants)
     {
         if (IsHungry(entities, index, metabolisms) && HasDiet(entities, index, diets, FoodType.Plant))
         {
             float radius = diets[index].DetectionRadius;
-            if (TryFindNearest(EntityType.Plant, index, entities, transforms, radius, out Vector2 foodDirection))
+            if (TryFindNearest(EntityType.Plant, index, entities, transforms, plants, radius, out Vector2 foodDirection))
             {
                 movements[index].SetDirection(foodDirection);
                 return;
@@ -109,6 +113,7 @@ public class BehaviorSystem : ISystem
                 index,
                 entities,
                 transforms,
+                plants,
                 FleeRadius,
                 out Vector2 fleeDirection))
         {
@@ -156,6 +161,7 @@ public class BehaviorSystem : ISystem
         int sourceIndex,
         Span<Entity> entities,
         Span<Transform> transforms,
+        Span<Plant> plants,
         float radius,
         out Vector2 direction)
     {
@@ -171,6 +177,10 @@ public class BehaviorSystem : ISystem
             if (!entities[i].IsAlive) { continue; }
             if (entities[i].Type != targetType) { continue; }
             if (!entities[i].Has(ComponentFlags.Transform)) { continue; }
+            if (targetType == EntityType.Plant && entities[i].Has(ComponentFlags.Plant) && !plants[i].IsActive)
+            {
+                continue;
+            }
 
             Vector2 delta = transforms[i].Position - sourcePos;
             float distSq = delta.LengthSquared();

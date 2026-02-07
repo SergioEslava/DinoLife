@@ -23,6 +23,7 @@ public class MetabolismSystem : ISystem
         Span<Transform> transforms = planet.Transforms.AsSpan(0, planet.EntityCount);
         Span<Metabolism> metabolisms = planet.Metabolisms.AsSpan(0, planet.EntityCount);
         Span<Diet> diets = planet.Diets.AsSpan(0, planet.EntityCount);
+        Span<Plant> plants = planet.Plants.AsSpan(0, planet.EntityCount);
 
         float deltaTime = (float)deltatime;
 
@@ -43,16 +44,26 @@ public class MetabolismSystem : ISystem
                         entities,
                         transforms,
                         diets,
+                        plants,
                         out int targetIndex))
                 {
-                    float gain = GetEnergyGain(diets[i].FoodType);
+                    float gain = GetEnergyGain(diets[i].FoodType, targetIndex, entities, plants);
                     metabolisms[i].Energy += gain * metabolisms[i].EnergyGainRate;
                     if (metabolisms[i].Energy > metabolisms[i].MaxEnergy)
                     {
                         metabolisms[i].Energy = metabolisms[i].MaxEnergy;
                     }
 
-                    entities[targetIndex].Kill();
+                    if (diets[i].FoodType == FoodType.Plant && entities[targetIndex].Has(ComponentFlags.Plant))
+                    {
+                        plants[targetIndex].IsActive = false;
+                        plants[targetIndex].RespawnTimer = plants[targetIndex].RespawnTime;
+                        plants[targetIndex].Energy = 0f;
+                    }
+                    else
+                    {
+                        entities[targetIndex].Kill();
+                    }
                 }
             }
 
@@ -64,20 +75,31 @@ public class MetabolismSystem : ISystem
         }
     }
 
-    private static float GetEnergyGain(FoodType foodType)
+    private static float GetEnergyGain(
+        FoodType foodType,
+        int targetIndex,
+        Span<Entity> entities,
+        Span<Plant> plants)
         => foodType switch
         {
-            FoodType.Plant => PlantEnergy,
+            FoodType.Plant => GetPlantEnergy(targetIndex, entities, plants),
             FoodType.Herbivore => HerbivoreEnergy,
             FoodType.Corpse => CorpseEnergy,
             _ => 0f
         };
+
+    private static float GetPlantEnergy(int targetIndex, Span<Entity> entities, Span<Plant> plants)
+    {
+        if (!entities[targetIndex].Has(ComponentFlags.Plant)) { return PlantEnergy; }
+        return plants[targetIndex].Energy;
+    }
 
     private static bool TryFindFoodTarget(
         int sourceIndex,
         Span<Entity> entities,
         Span<Transform> transforms,
         Span<Diet> diets,
+        Span<Plant> plants,
         out int targetIndex)
     {
         targetIndex = -1;
@@ -96,6 +118,10 @@ public class MetabolismSystem : ISystem
             if (!entities[i].Has(ComponentFlags.Transform)) { continue; }
 
             if (!IsFoodMatch(foodType, entities[i].Type)) { continue; }
+            if (foodType == FoodType.Plant && entities[i].Has(ComponentFlags.Plant) && !plants[i].IsActive)
+            {
+                continue;
+            }
 
             Vector2 delta = transforms[i].Position - sourcePos;
             if (delta.LengthSquared() > radiusSq) { continue; }
