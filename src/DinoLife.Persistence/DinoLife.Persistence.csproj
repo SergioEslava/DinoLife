@@ -11,9 +11,5 @@
   <ItemGroup>
     <ProjectReference Include="..\DinoLife.Core\DinoLife.Core.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <!-- System.Text.Json is built into .NET 8, no package needed -->
-  </ItemGroup>
-
+  
 </Project>

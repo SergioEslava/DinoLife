@@ -1,5 +1,6 @@
 using DinoLife.Core.Systems;
 using DinoLife.Core.World;
+using DinoLife.Core.Simulation;
 using FluentAssertions;
 using Xunit;
 

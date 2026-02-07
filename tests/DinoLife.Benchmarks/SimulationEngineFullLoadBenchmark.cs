@@ -1,6 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using DinoLife.Core.World;
 using DinoLife.Core.Systems;
+using DinoLife.Core.Simulation;
 
 namespace DinoLife.Benchmarks;
 

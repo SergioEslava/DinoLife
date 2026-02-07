@@ -1,3 +1,5 @@
+namespace DinoLife.Core.Simulation;
+
 /// <summary>
 /// Simple clock abstraction used by the simulation engine to read time.
 /// </summary>
