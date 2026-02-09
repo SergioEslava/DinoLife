@@ -43,6 +43,7 @@ public class MetabolismSystemTests
             EatingDuration = 1f
         };
 
+        new SpatialGridSystem().Update(world, 0);
         var system = new MetabolismSystem();
         system.Update(world, 1.0 / 60.0);
 
@@ -99,6 +100,7 @@ public class MetabolismSystemTests
             EatingDuration = 1f
         };
 
+        new SpatialGridSystem().Update(world, 0);
         var system = new MetabolismSystem();
         system.Update(world, 1.0 / 60.0);
 

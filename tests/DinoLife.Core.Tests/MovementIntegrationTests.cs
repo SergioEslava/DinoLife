@@ -30,6 +30,7 @@ public class MovementIntegrationTests
 
         for (int tick = 0; tick < 10; tick++)
         {
+            new SpatialGridSystem().Update(world, 0);
             behavior.Update(world, 1.0 / 60.0);
             movement.Update(world, 1.0 / 60.0);
             world.Tick++;
@@ -57,6 +58,7 @@ public class MovementIntegrationTests
         int herbivore = CreateEntity(world, EntityType.Herbivore, new Vector2(50f, 50f), speed: 4f);
         CreateEntity(world, EntityType.Carnivore, new Vector2(52f, 50f), speed: 4f);
 
+        new SpatialGridSystem().Update(world, 0);
         behavior.Update(world, 1.0 / 60.0);
 
         Vector2 velocity = world.Movements[herbivore].Velocity;
@@ -87,6 +89,7 @@ public class MovementIntegrationTests
             EnergyGainRate = 1f
         };
 
+        new SpatialGridSystem().Update(world, 0);
         behavior.Update(world, 1.0 / 60.0);
 
         Vector2 velocity = world.Movements[carnivore].Velocity;

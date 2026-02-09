@@ -17,6 +17,9 @@ public class HerbivoreEntityTests
         int herbivore = CreateHerbivore(world, new Vector2(10f, 10f), energy: 10f, threshold: 50f);
         CreatePlant(world, new Vector2(20f, 10f));
 
+        var grid = new SpatialGridSystem();
+        grid.Update(world, 0);
+
         var behavior = new BehaviorSystem();
         behavior.Update(world, 1.0 / 60.0);
 

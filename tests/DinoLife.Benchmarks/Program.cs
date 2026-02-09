@@ -9,5 +9,6 @@ public class Program
         // Ejecuta todos los benchmarks en este assembly
         BenchmarkRunner.Run<SimulationEngineBenchmark>();
         BenchmarkRunner.Run<SimulationEngineFullLoadBenchmark>();
+        BenchmarkRunner.Run<SpatialGridBenchmarks>();
     }
 }

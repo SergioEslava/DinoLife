@@ -18,6 +18,7 @@ public class ScavengerEntityTests
 
         world.AddCorpse(new Vector2(20f, 10f), energy: 15f);
 
+        new SpatialGridSystem().Update(world, 0);
         var behavior = new BehaviorSystem();
         behavior.Update(world, 1.0 / 60.0);
 
@@ -32,6 +33,7 @@ public class ScavengerEntityTests
 
         world.AddCorpse(new Vector2(11f, 10f), energy: 20f);
 
+        new SpatialGridSystem().Update(world, 0);
         var metabolism = new MetabolismSystem();
         metabolism.Update(world, 1.0 / 60.0);
 

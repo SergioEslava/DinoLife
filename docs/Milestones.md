@@ -142,11 +142,11 @@ Implement all 4 entity types with complete behavior systems producing emergent p
 - [x] Tests for population growth
 
 #### 2.9 Spatial Partitioning
-- [ ] `SpatialGrid` implementation
-- [ ] Entity insertion/removal
-- [ ] Radius query optimization
-- [ ] Performance tests (5000 entities, 100 queries/tick)
-- [ ] Grid visualization (debug mode)
+- [x] `SpatialGrid` implementation
+- [x] Entity insertion/removal
+- [x] Radius query optimization
+- [x] Performance tests (5000 entities, 100 queries/tick)
+- [x] Grid visualization (debug mode)
 
 ### Definition of Done
 - ✅ 5000 entities simulation at stable 60 TPS

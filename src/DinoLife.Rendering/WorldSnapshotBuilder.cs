@@ -64,6 +64,8 @@ public static class WorldSnapshotBuilder
         {
             Tick = planet.Tick,
             WorldSize = planet.WorldSize,
+            GridCellSize = planet.SpatialGrid.CellSize,
+            ShowGrid = planet.DebugDrawGrid,
             Entities = snapshotEntities,
             Corpses = snapshotCorpses,
             Stats = new SnapshotStats(herbivores, carnivores, plants, scavengers)
