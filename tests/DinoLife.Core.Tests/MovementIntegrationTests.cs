@@ -69,8 +69,23 @@ public class MovementIntegrationTests
         var world = new Planet { WorldSize = new Vector2(100f, 100f) };
         var behavior = new BehaviorSystem();
 
-        int carnivore = CreateEntity(world, EntityType.Carnivore, new Vector2(10f, 10f), speed: 4f);
+        int carnivore = CreateEntity(world, EntityType.Carnivore, new Vector2(10f, 10f), speed: 4f, hasDiet: true, hasMetabolism: true);
         CreateEntity(world, EntityType.Herbivore, new Vector2(12f, 10f), speed: 4f);
+
+        world.Diets[carnivore] = new Diet
+        {
+            FoodType = FoodType.Herbivore,
+            DetectionRadius = 20f,
+            EatRadius = 2f,
+            EatingDuration = 1f
+        };
+        world.Metabolisms[carnivore] = new Metabolism
+        {
+            Energy = 10f,
+            MaxEnergy = 100f,
+            HungerRate = 1f,
+            EnergyGainRate = 1f
+        };
 
         behavior.Update(world, 1.0 / 60.0);
 
@@ -78,15 +93,25 @@ public class MovementIntegrationTests
         velocity.X.Should().BeGreaterThan(0f);
     }
 
-    private static int CreateEntity(Planet world, EntityType type, Vector2 position, float speed)
+    private static int CreateEntity(
+        Planet world,
+        EntityType type,
+        Vector2 position,
+        float speed,
+        bool hasDiet = false,
+        bool hasMetabolism = false)
     {
         int slot = world.AllocateEntitySlot();
+
+        ComponentFlags flags = ComponentFlags.Transform | ComponentFlags.Movement;
+        if (hasDiet) { flags |= ComponentFlags.Diet; }
+        if (hasMetabolism) { flags |= ComponentFlags.Metabolism; }
 
         world.Entities[slot] = new Entity
         {
             Id = Guid.NewGuid(),
             Type = type,
-            Flags = ComponentFlags.Transform | ComponentFlags.Movement,
+            Flags = flags,
             IsAlive = true
         };
 

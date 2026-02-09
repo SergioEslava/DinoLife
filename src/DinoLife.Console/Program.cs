@@ -225,30 +225,30 @@ public class Program
                 {
                     world.Reproductions[slot] = new Reproduction
                     {
-                        ReproductionThreshold = 120f,
-                        ReproductionCost = 50f,
+                        ReproductionThreshold = 80f,
+                        ReproductionCost = 25f,
                         Cooldown = 0f,
-                        CooldownDuration = 120f
+                        CooldownDuration = 40f
                     };
                 }
                 else if (type == EntityType.Scavenger)
                 {
                     world.Reproductions[slot] = new Reproduction
                     {
-                        ReproductionThreshold = 60f,
-                        ReproductionCost = 30f,
+                        ReproductionThreshold = 40f,
+                        ReproductionCost = 15f,
                         Cooldown = 0f,
-                        CooldownDuration = 100f
+                        CooldownDuration = 35f
                     };
                 }
                 else
                 {
                     world.Reproductions[slot] = new Reproduction
                     {
-                        ReproductionThreshold = 80f,
-                        ReproductionCost = 30f,
+                        ReproductionThreshold = 55f,
+                        ReproductionCost = 13f,
                         Cooldown = 0f,
-                        CooldownDuration = 90f
+                        CooldownDuration = 11f
                     };
                 }
             }

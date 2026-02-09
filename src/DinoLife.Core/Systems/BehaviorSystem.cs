@@ -72,19 +72,6 @@ public class BehaviorSystem : ISystem
             }
         }
 
-        if (TryFindNearest(
-                EntityType.Herbivore,
-                index,
-                entities,
-                transforms,
-                plants,
-                ChaseRadius,
-                out Vector2 fallbackDirection))
-        {
-            movements[index].SetDirection(fallbackDirection);
-            return;
-        }
-
         HandleRandomWalk(planet, index, entities, movements);
     }
 
