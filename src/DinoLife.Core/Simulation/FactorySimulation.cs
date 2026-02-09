@@ -15,7 +15,8 @@ public static class FactorySimulation
             new MetabolismSystem(),
             new PlantGrowthSystem(),
             new HuntingSystem(),
-            new ReproductionSystem()
+            new ReproductionSystem(),
+            new DeathSystem()
         };
 
         return new SimulationEngine(world, clock, systems);

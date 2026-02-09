@@ -20,6 +20,7 @@ public class Planet
     private Diet[] _diets = new Diet[MAX_ENTITIES];
     private Plant[] _plants = new Plant[MAX_ENTITIES];
     private Reproduction[] _reproductions = new Reproduction[MAX_ENTITIES];
+    private Lifespan[] _lifespans = new Lifespan[MAX_ENTITIES];
     private readonly List<Corpse> _corpses = new List<Corpse>();
     private Stack<int> _freeSlots = new Stack<int>();
     private int _entityCount = 0;
@@ -49,6 +50,8 @@ public class Planet
     public void FreeEntitySlot(int slot)
     {
         _entities[slot].IsAlive = false;
+        _entities[slot].Flags = ComponentFlags.None;
+        _entities[slot].Id = Guid.Empty;
         _freeSlots.Push(slot);
     }
 
@@ -67,6 +70,7 @@ public class Planet
     public Diet[] Diets => _diets;
     public Plant[] Plants => _plants;
     public Reproduction[] Reproductions => _reproductions;
+    public Lifespan[] Lifespans => _lifespans;
 
     /// <summary>
     /// Active corpses in the world (temporary non-entity objects).

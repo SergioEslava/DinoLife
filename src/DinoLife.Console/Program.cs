@@ -156,6 +156,10 @@ public class Program
             {
                 flags |= ComponentFlags.Reproduction;
             }
+            if (type != EntityType.Plant)
+            {
+                flags |= ComponentFlags.Lifespan;
+            }
 
             world.Entities[slot] = new Entity
             {
@@ -247,6 +251,22 @@ public class Program
                         CooldownDuration = 90f
                     };
                 }
+            }
+
+            if (flags.HasFlag(ComponentFlags.Lifespan))
+            {
+                float maxAge = type switch
+                {
+                    EntityType.Carnivore => 400f,
+                    EntityType.Scavenger => 350f,
+                    _ => 300f
+                };
+
+                world.Lifespans[slot] = new Lifespan
+                {
+                    Age = 0f,
+                    MaxAge = maxAge
+                };
             }
         }
     }

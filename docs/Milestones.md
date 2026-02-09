@@ -129,10 +129,10 @@ Implement all 4 entity types with complete behavior systems producing emergent p
 - [x] Lower metabolism than carnivores
 
 #### 2.7 Death System
-- [ ] Death conditions (starvation, old age)
-- [ ] Corpse creation
-- [ ] Corpse decay over time
-- [ ] Entity removal from world
+- [x] Death conditions (starvation, old age)
+- [x] Corpse creation
+- [x] Corpse decay over time
+- [x] Entity removal from world
 
 #### 2.8 Reproduction System
 - [ ] Reproduction conditions (energy, cooldown)

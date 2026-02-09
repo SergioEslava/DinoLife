@@ -62,7 +62,7 @@ public class MetabolismSystemTests
         var system = new MetabolismSystem();
         system.Update(world, 1.0);
 
-        world.Entities[slot].IsAlive.Should().BeFalse();
+        world.Metabolisms[slot].Energy.Should().Be(0f);
     }
 
     [Fact]
@@ -77,9 +77,8 @@ public class MetabolismSystemTests
         var system = new MetabolismSystem();
         system.Update(world, 1.0);
 
-        world.Entities[slot].IsAlive.Should().BeFalse();
-        world.Corpses.Should().HaveCount(1);
-        world.Corpses[0].Position.Should().Be(new Vector2(2f, 2f));
+        world.Entities[slot].IsAlive.Should().BeTrue();
+        world.Corpses.Should().BeEmpty();
     }
 
     [Fact]
