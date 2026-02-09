@@ -22,6 +22,7 @@ public class ReproductionSystem : ISystem
         Metabolism[] metabolismArray = planet.Metabolisms;
         Diet[] dietArray = planet.Diets;
         Reproduction[] reproductionArray = planet.Reproductions;
+        Lifespan[] lifespanArray = planet.Lifespans;
 
         Span<Entity> entities = entityArray.AsSpan(0, planet.EntityCount);
         Span<Transform> transforms = transformArray.AsSpan(0, planet.EntityCount);
@@ -29,6 +30,7 @@ public class ReproductionSystem : ISystem
         Span<Metabolism> metabolisms = metabolismArray.AsSpan(0, planet.EntityCount);
         Span<Diet> diets = dietArray.AsSpan(0, planet.EntityCount);
         Span<Reproduction> reproductions = reproductionArray.AsSpan(0, planet.EntityCount);
+        Span<Lifespan> lifespans = lifespanArray.AsSpan(0, planet.EntityCount);
 
         float deltaTime = (float)deltatime;
 
@@ -75,6 +77,19 @@ public class ReproductionSystem : ISystem
             dietArray[childSlot] = diets[i];
             reproductionArray[childSlot] = reproductions[i];
             reproductionArray[childSlot].Cooldown = 0f;
+            if (entities[i].Has(ComponentFlags.Lifespan))
+            {
+                lifespanArray[childSlot] = lifespans[i];
+                lifespanArray[childSlot].Age = 0f;
+            }
+
+            ApplyStatVariation(
+                ref movementArray[childSlot],
+                ref metabolismArray[childSlot],
+                entities[i].Has(ComponentFlags.Lifespan),
+                ref lifespanArray[childSlot],
+                entities[i].Id,
+                planet.Tick);
 
             metabolisms[i].Energy -= reproductions[i].ReproductionCost;
             if (metabolisms[i].Energy < 0f) { metabolisms[i].Energy = 0f; }
@@ -91,6 +106,51 @@ public class ReproductionSystem : ISystem
         Vector2 childPos = position + offset;
         return WrapPosition(childPos, worldSize);
     }
+
+    private static void ApplyStatVariation(
+        ref Movement movement,
+        ref Metabolism metabolism,
+        bool hasLifespan,
+        ref Lifespan lifespan,
+        Guid seedGuid,
+        int tick)
+    {
+        uint state = (uint)(seedGuid.GetHashCode() ^ (tick * 7919));
+        float speedMultiplier = 0.9f + (Next01(ref state) * 0.2f);
+        float hungerMultiplier = 0.9f + (Next01(ref state) * 0.2f);
+        float ageMultiplier = 0.9f + (Next01(ref state) * 0.2f);
+
+        if (movement.Speed > 0f)
+        {
+            movement.Speed *= speedMultiplier;
+            movement.Acceleration = movement.Speed * 2f;
+        }
+
+        if (metabolism.HungerRate > 0f)
+        {
+            metabolism.HungerRate *= hungerMultiplier;
+        }
+
+        if (hasLifespan && lifespan.MaxAge > 0f)
+        {
+            lifespan.MaxAge *= ageMultiplier;
+        }
+    }
+
+    private static float Next01(ref uint state)
+    {
+        state = XorShift(state == 0 ? 1u : state);
+        return (state & 0x00FFFFFF) / 16777216f;
+    }
+
+    private static uint XorShift(uint value)
+    {
+        value ^= value << 13;
+        value ^= value >> 17;
+        value ^= value << 5;
+        return value;
+    }
+
 
     private static Vector2 WrapPosition(Vector2 pos, Vector2 worldSize)
     {
