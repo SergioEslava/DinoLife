@@ -17,6 +17,7 @@ public static class WorldSnapshotBuilder
         Span<DinoLife.Core.Components.Plant> plantComponents = planet.Plants.AsSpan(0, planet.EntityCount);
 
         SnapshotEntity[] snapshotEntities = new SnapshotEntity[entities.Length];
+        SnapshotCorpse[] snapshotCorpses = new SnapshotCorpse[planet.Corpses.Count];
 
         int herbivores = 0;
         int carnivores = 0;
@@ -54,11 +55,17 @@ public static class WorldSnapshotBuilder
             }
         }
 
+        for (int i = 0; i < planet.Corpses.Count; i++)
+        {
+            snapshotCorpses[i] = new SnapshotCorpse(planet.Corpses[i].Position);
+        }
+
         return new WorldSnapshot
         {
             Tick = planet.Tick,
             WorldSize = planet.WorldSize,
             Entities = snapshotEntities,
+            Corpses = snapshotCorpses,
             Stats = new SnapshotStats(herbivores, carnivores, plants, scavengers)
         };
     }

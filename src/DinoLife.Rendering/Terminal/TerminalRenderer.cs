@@ -28,6 +28,7 @@ public sealed class TerminalRenderer : IRenderer
         EnsureBuffers();
         ClearBackBuffer();
 
+        DrawCorpses(snapshot);
         DrawEntities(snapshot);
         DrawHud(snapshot);
 
@@ -84,6 +85,17 @@ public sealed class TerminalRenderer : IRenderer
 
             char symbol = GetSymbol(entity.Type);
             SetCell(x, y, symbol);
+        }
+    }
+
+    private void DrawCorpses(WorldSnapshot snapshot)
+    {
+        for (int i = 0; i < snapshot.Corpses.Length; i++)
+        {
+            SnapshotCorpse corpse = snapshot.Corpses[i];
+            int x = ToScreenX(corpse.Position.X, snapshot.WorldSize.X);
+            int y = ToScreenY(corpse.Position.Y, snapshot.WorldSize.Y);
+            SetCell(x, y, 'X');
         }
     }
 

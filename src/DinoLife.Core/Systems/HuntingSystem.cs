@@ -38,6 +38,18 @@ public class HuntingSystem : ISystem
                     diets[i].EatRadius,
                     out int preyIndex))
             {
+                // Create a corpse before removing the prey to preserve its remaining energy.
+                if (entities[preyIndex].Has(ComponentFlags.Transform))
+                {
+                    float corpseEnergy = 0f;
+                    if (entities[preyIndex].Has(ComponentFlags.Metabolism))
+                    {
+                        corpseEnergy = metabolisms[preyIndex].Energy * CorpseStats.EnergyRetention;
+                    }
+
+                    planet.AddCorpse(transforms[preyIndex].Position, corpseEnergy);
+                }
+
                 entities[preyIndex].Kill();
 
                 metabolisms[i].Energy += HerbivoreEnergy * metabolisms[i].EnergyGainRate;

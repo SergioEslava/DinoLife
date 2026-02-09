@@ -66,6 +66,23 @@ public class MetabolismSystemTests
     }
 
     [Fact]
+    public void MetabolismSystem_CreatesCorpse_WhenEntityStarves()
+    {
+        var world = new Planet();
+        int slot = CreateEntity(world, EntityType.Herbivore, new Vector2(2f, 2f));
+
+        world.Metabolisms[slot].Energy = 0.2f;
+        world.Metabolisms[slot].HungerRate = 1.0f;
+
+        var system = new MetabolismSystem();
+        system.Update(world, 1.0);
+
+        world.Entities[slot].IsAlive.Should().BeFalse();
+        world.Corpses.Should().HaveCount(1);
+        world.Corpses[0].Position.Should().Be(new Vector2(2f, 2f));
+    }
+
+    [Fact]
     public void MetabolismSystem_CapsEnergy_AtMax()
     {
         var world = new Planet();

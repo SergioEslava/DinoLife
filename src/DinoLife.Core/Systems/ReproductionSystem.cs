@@ -41,7 +41,12 @@ public class ReproductionSystem : ISystem
 
             reproductions[i].Cooldown += deltaTime;
 
-            if (entities[i].Type != EntityType.Herbivore && entities[i].Type != EntityType.Carnivore) { continue; }
+            if (entities[i].Type != EntityType.Herbivore
+                && entities[i].Type != EntityType.Carnivore
+                && entities[i].Type != EntityType.Scavenger)
+            {
+                continue;
+            }
             if (!reproductions[i].CanReproduce(metabolisms[i].Energy)) { continue; }
 
             int childSlot;
