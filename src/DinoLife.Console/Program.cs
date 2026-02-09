@@ -148,11 +148,11 @@ public class Program
             ComponentFlags flags = ComponentFlags.Transform;
             if (hasMovement) { flags |= ComponentFlags.Movement; }
             if (type != EntityType.Plant) { flags |= ComponentFlags.Metabolism; }
-            if (type == EntityType.Herbivore || type == EntityType.Carnivore)
+            if (type == EntityType.Herbivore || type == EntityType.Carnivore || type == EntityType.Scavenger)
             {
                 flags |= ComponentFlags.Diet;
             }
-            if (type == EntityType.Herbivore || type == EntityType.Carnivore)
+            if (type == EntityType.Herbivore || type == EntityType.Carnivore || type == EntityType.Scavenger)
             {
                 flags |= ComponentFlags.Reproduction;
             }
@@ -181,43 +181,72 @@ public class Program
 
             if (flags.HasFlag(ComponentFlags.Metabolism))
             {
+                float hungerRate = type == EntityType.Scavenger ? 0.8f : 1.0f;
                 world.Metabolisms[slot] = new Metabolism
                 {
                     Energy = 50f,
                     MaxEnergy = 100f,
-                    HungerRate = 1.0f,
+                    HungerRate = hungerRate,
                     EnergyGainRate = 1.0f
                 };
             }
 
             if (flags.HasFlag(ComponentFlags.Diet))
             {
-                world.Diets[slot] = new Diet
+                if (type == EntityType.Scavenger)
                 {
-                    FoodType = type == EntityType.Carnivore ? FoodType.Herbivore : FoodType.Plant,
-                    DetectionRadius = 20f,
-                    EatRadius = 2f,
-                    EatingDuration = 1f
-                };
+                    world.Diets[slot] = new Diet
+                    {
+                        FoodType = FoodType.Corpse,
+                        DetectionRadius = 25f,
+                        EatRadius = 1.5f,
+                        EatingDuration = 1f
+                    };
+                }
+                else
+                {
+                    world.Diets[slot] = new Diet
+                    {
+                        FoodType = type == EntityType.Carnivore ? FoodType.Herbivore : FoodType.Plant,
+                        DetectionRadius = 20f,
+                        EatRadius = 2f,
+                        EatingDuration = 1f
+                    };
+                }
             }
 
             if (flags.HasFlag(ComponentFlags.Reproduction))
             {
-                world.Reproductions[slot] = type == EntityType.Carnivore
-                    ? new Reproduction
+                if (type == EntityType.Carnivore)
+                {
+                    world.Reproductions[slot] = new Reproduction
                     {
                         ReproductionThreshold = 120f,
                         ReproductionCost = 50f,
                         Cooldown = 0f,
                         CooldownDuration = 120f
-                    }
-                    : new Reproduction
+                    };
+                }
+                else if (type == EntityType.Scavenger)
+                {
+                    world.Reproductions[slot] = new Reproduction
+                    {
+                        ReproductionThreshold = 60f,
+                        ReproductionCost = 30f,
+                        Cooldown = 0f,
+                        CooldownDuration = 100f
+                    };
+                }
+                else
+                {
+                    world.Reproductions[slot] = new Reproduction
                     {
                         ReproductionThreshold = 80f,
                         ReproductionCost = 30f,
                         Cooldown = 0f,
                         CooldownDuration = 90f
                     };
+                }
             }
         }
     }

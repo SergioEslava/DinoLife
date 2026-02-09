@@ -20,6 +20,7 @@ public class Planet
     private Diet[] _diets = new Diet[MAX_ENTITIES];
     private Plant[] _plants = new Plant[MAX_ENTITIES];
     private Reproduction[] _reproductions = new Reproduction[MAX_ENTITIES];
+    private readonly List<Corpse> _corpses = new List<Corpse>();
     private Stack<int> _freeSlots = new Stack<int>();
     private int _entityCount = 0;
     private int _tick;
@@ -66,6 +67,30 @@ public class Planet
     public Diet[] Diets => _diets;
     public Plant[] Plants => _plants;
     public Reproduction[] Reproductions => _reproductions;
+
+    /// <summary>
+    /// Active corpses in the world (temporary non-entity objects).
+    /// </summary>
+    public List<Corpse> Corpses => _corpses;
+
+    /// <summary>
+    /// Create and register a corpse at the provided <paramref name="position"/>.
+    /// </summary>
+    /// <param name="position">World position for the corpse.</param>
+    /// <param name="energy">Energy available to scavengers.</param>
+    /// <remarks>
+    /// Corpses are not entities and are removed when eaten or after decay.
+    /// </remarks>
+    public void AddCorpse(Vector2 position, float energy)
+    {
+        _corpses.Add(new Corpse
+        {
+            Id = Guid.NewGuid(),
+            Position = position,
+            Energy = energy,
+            DecayTimer = CorpseStats.DefaultDecayTime
+        });
+    }
 
     /// <summary>
     /// Simulation tick counter incremented by the engine.

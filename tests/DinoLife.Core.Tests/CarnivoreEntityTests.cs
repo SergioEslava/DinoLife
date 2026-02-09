@@ -22,6 +22,7 @@ public class CarnivoreEntityTests
 
         world.Entities[herbivore].IsAlive.Should().BeFalse();
         world.Metabolisms[carnivore].Energy.Should().BeGreaterThan(10f);
+        world.Corpses.Should().HaveCount(1);
     }
 
     [Fact]

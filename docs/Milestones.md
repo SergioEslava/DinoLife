@@ -122,11 +122,11 @@ Implement all 4 entity types with complete behavior systems producing emergent p
 - [x] Reproduction when energy > threshold
 
 #### 2.6 Scavenger Entity
-- [ ] Corpse detection
-- [ ] Movement towards corpses
-- [ ] Scavenging mechanics
-- [ ] Reproduction when energy > threshold
-- [ ] Lower metabolism than carnivores
+- [x] Corpse detection
+- [x] Movement towards corpses
+- [x] Scavenging mechanics
+- [x] Reproduction when energy > threshold
+- [x] Lower metabolism than carnivores
 
 #### 2.7 Death System
 - [ ] Death conditions (starvation, old age)

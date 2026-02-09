@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using DinoLife.Core.Components;
 using DinoLife.Core.Entities;
 using DinoLife.Core.Utils;
@@ -38,13 +39,33 @@ public class MetabolismSystem : ISystem
             // Eat if possible
             if (entities[i].Has(ComponentFlags.Diet) && entities[i].Has(ComponentFlags.Transform))
             {
-                if (TryFindFoodTarget(
-                        i,
-                        entities,
-                        transforms,
-                        diets,
-                        plants,
-                        out int targetIndex))
+                if (diets[i].FoodType == FoodType.Corpse)
+                {
+                    // Scavengers consume corpses directly (not entities).
+                    if (TryFindCorpseTarget(
+                            i,
+                            transforms,
+                            diets,
+                            planet.Corpses,
+                            out int corpseIndex))
+                    {
+                        float gain = planet.Corpses[corpseIndex].Energy;
+                        metabolisms[i].Energy += gain * metabolisms[i].EnergyGainRate;
+                        if (metabolisms[i].Energy > metabolisms[i].MaxEnergy)
+                        {
+                            metabolisms[i].Energy = metabolisms[i].MaxEnergy;
+                        }
+
+                        planet.Corpses.RemoveAt(corpseIndex);
+                    }
+                }
+                else if (TryFindFoodTarget(
+                             i,
+                             entities,
+                             transforms,
+                             diets,
+                             plants,
+                             out int targetIndex))
                 {
                     float gain = GetEnergyGain(diets[i].FoodType, targetIndex, entities, plants);
                     metabolisms[i].Energy += gain * metabolisms[i].EnergyGainRate;
@@ -69,6 +90,13 @@ public class MetabolismSystem : ISystem
             // Starvation
             if (metabolisms[i].Energy <= 0f)
             {
+                if (entities[i].Type != EntityType.Plant && entities[i].Has(ComponentFlags.Transform))
+                {
+                    // Starvation leaves a corpse with whatever energy remains.
+                    float corpseEnergy = metabolisms[i].Energy * CorpseStats.EnergyRetention;
+                    planet.AddCorpse(transforms[i].Position, corpseEnergy);
+                }
+
                 entities[i].Kill();
             }
         }
@@ -141,5 +169,34 @@ public class MetabolismSystem : ISystem
             FoodType.Corpse => false,
             _ => false
         };
+    }
+
+    /// <summary>
+    /// Finds a corpse within the entity's eat radius.
+    /// </summary>
+    private static bool TryFindCorpseTarget(
+        int sourceIndex,
+        Span<Transform> transforms,
+        Span<Diet> diets,
+        List<Corpse> corpses,
+        out int corpseIndex)
+    {
+        corpseIndex = -1;
+        if (corpses.Count == 0) { return false; }
+
+        float radius = diets[sourceIndex].EatRadius;
+        float radiusSq = radius * radius;
+        Vector2 sourcePos = transforms[sourceIndex].Position;
+
+        for (int i = 0; i < corpses.Count; i++)
+        {
+            Vector2 delta = corpses[i].Position - sourcePos;
+            if (delta.LengthSquared() > radiusSq) { continue; }
+
+            corpseIndex = i;
+            return true;
+        }
+
+        return false;
     }
 }

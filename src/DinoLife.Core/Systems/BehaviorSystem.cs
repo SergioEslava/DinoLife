@@ -46,7 +46,7 @@ public class BehaviorSystem : ISystem
                     break;
 
                 case EntityType.Scavenger:
-                    HandleRandomWalk(planet, i, entities, movements);
+                    HandleScavenger(planet, i, entities, transforms, movements, diets);
                     break;
             }
         }
@@ -140,6 +140,24 @@ public class BehaviorSystem : ISystem
         movements[index].SetDirection(direction);
     }
 
+    private void HandleScavenger(
+        Planet planet,
+        int index,
+        Span<Entity> entities,
+        Span<Transform> transforms,
+        Span<Movement> movements,
+        Span<Diet> diets)
+    {
+        // Scavengers prioritize moving toward nearby corpses.
+        if (TryFindNearestCorpse(planet, index, transforms, diets, out Vector2 corpseDirection))
+        {
+            movements[index].SetDirection(corpseDirection);
+            return;
+        }
+
+        HandleRandomWalk(planet, index, entities, movements);
+    }
+
     private static Vector2 RandomDirection(uint seed)
     {
         uint hash = XorShift(seed == 0 ? 1u : seed);
@@ -183,6 +201,44 @@ public class BehaviorSystem : ISystem
             }
 
             Vector2 delta = transforms[i].Position - sourcePos;
+            float distSq = delta.LengthSquared();
+            if (distSq > radiusSq) { continue; }
+
+            if (distSq < bestDistSq)
+            {
+                bestDistSq = distSq;
+                direction = delta;
+            }
+        }
+
+        return bestDistSq < float.MaxValue;
+    }
+
+    private static bool TryFindNearestCorpse(
+        Planet planet,
+        int sourceIndex,
+        Span<Transform> transforms,
+        Span<Diet> diets,
+        out Vector2 direction)
+    {
+        direction = Vector2.Zero;
+
+        if (planet.Corpses.Count == 0) { return false; }
+
+        float radius = 25f;
+        if (sourceIndex < diets.Length && diets[sourceIndex].DetectionRadius > 0f)
+        {
+            radius = diets[sourceIndex].DetectionRadius;
+        }
+
+        float radiusSq = radius * radius;
+        float bestDistSq = float.MaxValue;
+        Vector2 sourcePos = transforms[sourceIndex].Position;
+
+        var corpses = planet.Corpses;
+        for (int i = 0; i < corpses.Count; i++)
+        {
+            Vector2 delta = corpses[i].Position - sourcePos;
             float distSq = delta.LengthSquared();
             if (distSq > radiusSq) { continue; }
 
