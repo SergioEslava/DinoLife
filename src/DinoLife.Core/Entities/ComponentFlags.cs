@@ -13,5 +13,6 @@ public enum ComponentFlags
     Movement = 1 << 2,
     Diet = 1 << 3,
     Reproduction = 1 << 4,
-    Plant = 1 << 5
+    Plant = 1 << 5,
+    Lifespan = 1 << 6
 }

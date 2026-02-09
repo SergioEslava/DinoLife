@@ -87,18 +87,6 @@ public class MetabolismSystem : ISystem
                 }
             }
 
-            // Starvation
-            if (metabolisms[i].Energy <= 0f)
-            {
-                if (entities[i].Type != EntityType.Plant && entities[i].Has(ComponentFlags.Transform))
-                {
-                    // Starvation leaves a corpse with whatever energy remains.
-                    float corpseEnergy = metabolisms[i].Energy * CorpseStats.EnergyRetention;
-                    planet.AddCorpse(transforms[i].Position, corpseEnergy);
-                }
-
-                entities[i].Kill();
-            }
         }
     }
 
