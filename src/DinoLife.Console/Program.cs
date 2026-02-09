@@ -18,6 +18,7 @@ public class Program
     private bool _isExiting;
     private bool _tickOnceRequested;
     private SimulationEngine? _simulation;
+    private bool _showGrid;
 
     /// <summary>
     /// Application entry point.
@@ -37,6 +38,7 @@ public class Program
         world.WorldSize = new Vector2(120f, 40f);
         SeedWorld(world);
         _simulation = FactorySimulation.GenerateDefaultSimulation(world);
+        world.DebugDrawGrid = _showGrid;
 
         IRenderer renderer = new TerminalRenderer();
         renderer.Initialize();
@@ -293,5 +295,15 @@ public class Program
     public void RequestTick()
     {
         if (_simulation is not null && _simulation.IsStopped) {_tickOnceRequested = true;}
+    }
+
+    /// <summary>
+    /// Toggle spatial grid debug rendering.
+    /// </summary>
+    public void ToggleGrid()
+    {
+        _showGrid = !_showGrid;
+        if (_simulation is null) { return; }
+        _simulation.World.DebugDrawGrid = _showGrid;
     }
 }

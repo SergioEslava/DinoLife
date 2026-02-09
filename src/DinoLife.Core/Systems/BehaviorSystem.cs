@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using DinoLife.Core.Components;
 using DinoLife.Core.Entities;
 using DinoLife.Core.Utils;
@@ -28,6 +29,7 @@ public class BehaviorSystem : ISystem
         Span<Metabolism> metabolisms = planet.Metabolisms.AsSpan(0, planet.EntityCount);
         Span<Diet> diets = planet.Diets.AsSpan(0, planet.EntityCount);
         Span<Plant> plants = planet.Plants.AsSpan(0, planet.EntityCount);
+        var candidates = new List<int>(64);
 
         for (int i = 0; i < entities.Length; i++)
         {
@@ -38,11 +40,11 @@ public class BehaviorSystem : ISystem
             switch (entities[i].Type)
             {
                 case EntityType.Carnivore:
-                    HandleCarnivore(planet, i, entities, transforms, movements, metabolisms, diets, plants);
+                    HandleCarnivore(planet, i, entities, transforms, movements, metabolisms, diets, plants, candidates);
                     break;
 
                 case EntityType.Herbivore:
-                    HandleHerbivore(planet, i, entities, transforms, movements, metabolisms, diets, plants);
+                    HandleHerbivore(planet, i, entities, transforms, movements, metabolisms, diets, plants, candidates);
                     break;
 
                 case EntityType.Scavenger:
@@ -60,12 +62,13 @@ public class BehaviorSystem : ISystem
         Span<Movement> movements,
         Span<Metabolism> metabolisms,
         Span<Diet> diets,
-        Span<Plant> plants)
+        Span<Plant> plants,
+        List<int> candidates)
     {
         if (IsHungry(entities, index, metabolisms) && HasDiet(entities, index, diets, FoodType.Herbivore))
         {
             float radius = diets[index].DetectionRadius > 0f ? diets[index].DetectionRadius : ChaseRadius;
-            if (TryFindNearest(EntityType.Herbivore, index, entities, transforms, plants, radius, out Vector2 chaseDirection))
+            if (TryFindNearest(planet, EntityType.Herbivore, index, entities, transforms, plants, radius, candidates, out Vector2 chaseDirection))
             {
                 movements[index].SetDirection(chaseDirection);
                 return;
@@ -83,12 +86,13 @@ public class BehaviorSystem : ISystem
         Span<Movement> movements,
         Span<Metabolism> metabolisms,
         Span<Diet> diets,
-        Span<Plant> plants)
+        Span<Plant> plants,
+        List<int> candidates)
     {
         if (IsHungry(entities, index, metabolisms) && HasDiet(entities, index, diets, FoodType.Plant))
         {
             float radius = diets[index].DetectionRadius;
-            if (TryFindNearest(EntityType.Plant, index, entities, transforms, plants, radius, out Vector2 foodDirection))
+            if (TryFindNearest(planet, EntityType.Plant, index, entities, transforms, plants, radius, candidates, out Vector2 foodDirection))
             {
                 movements[index].SetDirection(foodDirection);
                 return;
@@ -96,12 +100,14 @@ public class BehaviorSystem : ISystem
         }
 
         if (TryFindNearest(
+                planet,
                 EntityType.Carnivore,
                 index,
                 entities,
                 transforms,
                 plants,
                 FleeRadius,
+                candidates,
                 out Vector2 fleeDirection))
         {
             movements[index].SetDirection(new Vector2(-fleeDirection.X, -fleeDirection.Y));
@@ -162,12 +168,14 @@ public class BehaviorSystem : ISystem
     }
 
     private static bool TryFindNearest(
+        Planet planet,
         EntityType targetType,
         int sourceIndex,
         Span<Entity> entities,
         Span<Transform> transforms,
         Span<Plant> plants,
         float radius,
+        List<int> candidates,
         out Vector2 direction)
     {
         direction = Vector2.Zero;
@@ -176,8 +184,11 @@ public class BehaviorSystem : ISystem
 
         Vector2 sourcePos = transforms[sourceIndex].Position;
 
-        for (int i = 0; i < entities.Length; i++)
+        planet.SpatialGrid.QueryRadius(sourcePos, radius, candidates);
+
+        for (int c = 0; c < candidates.Count; c++)
         {
+            int i = candidates[c];
             if (i == sourceIndex) { continue; }
             if (!entities[i].IsAlive) { continue; }
             if (entities[i].Type != targetType) { continue; }

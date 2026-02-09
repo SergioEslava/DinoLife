@@ -10,6 +10,7 @@ public static class FactorySimulation
         var clock = new StopwatchClock();
         var systems = new ISystem[]
         {
+            new SpatialGridSystem(),
             new BehaviorSystem(),
             new MovementSystem(),
             new MetabolismSystem(),

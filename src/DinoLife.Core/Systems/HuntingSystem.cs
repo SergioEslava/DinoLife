@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using DinoLife.Core.Components;
 using DinoLife.Core.Entities;
 using DinoLife.Core.Utils;
@@ -21,6 +22,7 @@ public class HuntingSystem : ISystem
         Span<Transform> transforms = planet.Transforms.AsSpan(0, planet.EntityCount);
         Span<Metabolism> metabolisms = planet.Metabolisms.AsSpan(0, planet.EntityCount);
         Span<Diet> diets = planet.Diets.AsSpan(0, planet.EntityCount);
+        var candidates = new List<int>(16);
 
         for (int i = 0; i < entities.Length; i++)
         {
@@ -36,6 +38,8 @@ public class HuntingSystem : ISystem
                     entities,
                     transforms,
                     diets[i].EatRadius,
+                    planet.SpatialGrid,
+                    candidates,
                     out int preyIndex))
             {
                 // Create a corpse before removing the prey to preserve its remaining energy.
@@ -66,14 +70,19 @@ public class HuntingSystem : ISystem
         Span<Entity> entities,
         Span<Transform> transforms,
         float radius,
+        SpatialGrid grid,
+        List<int> candidates,
         out int preyIndex)
     {
         preyIndex = -1;
         float radiusSq = radius * radius;
         Vector2 hunterPos = transforms[hunterIndex].Position;
 
-        for (int i = 0; i < entities.Length; i++)
+        grid.QueryRadius(hunterPos, radius, candidates);
+
+        for (int c = 0; c < candidates.Count; c++)
         {
+            int i = candidates[c];
             if (i == hunterIndex) { continue; }
             if (!entities[i].IsAlive) { continue; }
             if (entities[i].Type != EntityType.Herbivore) { continue; }

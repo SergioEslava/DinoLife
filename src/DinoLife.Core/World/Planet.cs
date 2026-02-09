@@ -26,10 +26,26 @@ public class Planet
     private int _entityCount = 0;
     private int _tick;
 
+    private Vector2 _worldSize = new Vector2(1000f, 1000f);
+    private readonly SpatialGrid _spatialGrid;
+
+    public Planet()
+    {
+        _spatialGrid = new SpatialGrid(_worldSize, cellSize: 10f);
+    }
+
     /// <summary>
     /// World boundaries used by movement wrapping.
     /// </summary>
-    public Vector2 WorldSize { get; set; } = new Vector2(1000f, 1000f);
+    public Vector2 WorldSize
+    {
+        get => _worldSize;
+        set
+        {
+            _worldSize = value;
+            _spatialGrid.Resize(_worldSize);
+        }
+    }
     
     /// <summary>
     /// Allocate and return an available entity slot index. Throws when the world is full.
@@ -71,6 +87,12 @@ public class Planet
     public Plant[] Plants => _plants;
     public Reproduction[] Reproductions => _reproductions;
     public Lifespan[] Lifespans => _lifespans;
+    public SpatialGrid SpatialGrid => _spatialGrid;
+
+    /// <summary>
+    /// Enable debug rendering of the spatial grid.
+    /// </summary>
+    public bool DebugDrawGrid { get; set; }
 
     /// <summary>
     /// Active corpses in the world (temporary non-entity objects).

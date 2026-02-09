@@ -24,6 +24,7 @@ public class MetabolismSystem : ISystem
         Span<Metabolism> metabolisms = planet.Metabolisms.AsSpan(0, planet.EntityCount);
         Span<Diet> diets = planet.Diets.AsSpan(0, planet.EntityCount);
         Span<Plant> plants = planet.Plants.AsSpan(0, planet.EntityCount);
+        var candidates = new List<int>(32);
 
         float deltaTime = (float)deltatime;
 
@@ -65,6 +66,8 @@ public class MetabolismSystem : ISystem
                              transforms,
                              diets,
                              plants,
+                             planet.SpatialGrid,
+                             candidates,
                              out int targetIndex))
                 {
                     float gain = GetEnergyGain(diets[i].FoodType, targetIndex, entities, plants);
@@ -115,6 +118,8 @@ public class MetabolismSystem : ISystem
         Span<Transform> transforms,
         Span<Diet> diets,
         Span<Plant> plants,
+        SpatialGrid grid,
+        List<int> candidates,
         out int targetIndex)
     {
         targetIndex = -1;
@@ -126,8 +131,11 @@ public class MetabolismSystem : ISystem
         float radiusSq = radius * radius;
         Vector2 sourcePos = transforms[sourceIndex].Position;
 
-        for (int i = 0; i < entities.Length; i++)
+        grid.QueryRadius(sourcePos, radius, candidates);
+
+        for (int c = 0; c < candidates.Count; c++)
         {
+            int i = candidates[c];
             if (i == sourceIndex) { continue; }
             if (!entities[i].IsAlive) { continue; }
             if (!entities[i].Has(ComponentFlags.Transform)) { continue; }

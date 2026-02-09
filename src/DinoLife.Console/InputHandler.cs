@@ -30,6 +30,10 @@ public class InputHandler
             case ConsoleKey.T:
                 program.RequestTick();
                 break;
+
+            case ConsoleKey.G:
+                program.ToggleGrid();
+                break;
         }
     }
 }

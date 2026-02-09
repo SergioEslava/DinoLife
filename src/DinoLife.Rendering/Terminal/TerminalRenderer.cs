@@ -28,6 +28,11 @@ public sealed class TerminalRenderer : IRenderer
         EnsureBuffers();
         ClearBackBuffer();
 
+        if (snapshot.ShowGrid)
+        {
+            DrawGrid(snapshot);
+        }
+
         DrawCorpses(snapshot);
         DrawEntities(snapshot);
         DrawHud(snapshot);
@@ -96,6 +101,50 @@ public sealed class TerminalRenderer : IRenderer
             int x = ToScreenX(corpse.Position.X, snapshot.WorldSize.X);
             int y = ToScreenY(corpse.Position.Y, snapshot.WorldSize.Y);
             SetCell(x, y, 'X');
+        }
+    }
+
+    private void DrawGrid(WorldSnapshot snapshot)
+    {
+        float cellSize = snapshot.GridCellSize;
+        if (cellSize <= 0f) { return; }
+
+        float worldWidth = snapshot.WorldSize.X;
+        float worldHeight = snapshot.WorldSize.Y;
+
+        int cellsX = (int)MathF.Ceiling(worldWidth / cellSize);
+        int cellsY = (int)MathF.Ceiling(worldHeight / cellSize);
+
+        for (int gx = 1; gx < cellsX; gx++)
+        {
+            float wx = gx * cellSize;
+            int sx = ToScreenX(wx, worldWidth);
+            for (int sy = 0; sy < _drawableHeight; sy++)
+            {
+                SetCell(sx, sy, '|');
+            }
+        }
+
+        for (int gy = 1; gy < cellsY; gy++)
+        {
+            float wy = gy * cellSize;
+            int sy = ToScreenY(wy, worldHeight);
+            for (int sx = 0; sx < _width; sx++)
+            {
+                SetCell(sx, sy, '-');
+            }
+        }
+
+        for (int gx = 1; gx < cellsX; gx++)
+        {
+            float wx = gx * cellSize;
+            int sx = ToScreenX(wx, worldWidth);
+            for (int gy = 1; gy < cellsY; gy++)
+            {
+                float wy = gy * cellSize;
+                int sy = ToScreenY(wy, worldHeight);
+                SetCell(sx, sy, '+');
+            }
         }
     }
 
