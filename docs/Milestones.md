@@ -184,16 +184,16 @@ Create terminal-based visualization with real-time statistics and debugging tool
 ### Deliverables
 
 #### 3.1 Renderer Architecture
-- [ ] `IRenderer` interface
-- [ ] `RenderData` / `WorldSnapshot` struct (read-only view)
-- [ ] `TerminalRenderer` skeleton
-- [ ] Color scheme configuration
-- [ ] Entity symbol mapping
+  - [x] `IRenderer` interface
+  - [x] `RenderData` / `WorldSnapshot` struct (read-only view)
+  - [x] `TerminalRenderer` skeleton
+  - [ ] Color scheme configuration
+  - [x] Entity symbol mapping
 
 #### 3.2 Double Buffering
 - [ ] `DoubleBuffer` class (char[,] arrays)
-- [ ] Buffer swap logic
-- [ ] Diff-based console updates (only changed cells)
+  - [x] Buffer swap logic
+  - [x] Diff-based console updates (only changed cells)
 - [ ] Flicker testing
 
 #### 3.3 Entity Rendering
@@ -202,13 +202,13 @@ Create terminal-based visualization with real-time statistics and debugging tool
   - Carnivore: `C` (Red)
   - Plant: `*` (Light Green)
   - Scavenger: `S` (Yellow)
-- [ ] Position scaling (world → screen coords)
+  - [x] Position scaling (world -> screen coords)
 - [ ] Culling for off-screen entities
 - [ ] Layering (plants → herbivores → carnivores)
 
 #### 3.4 HUD Display
 - [ ] Top bar: Tick count, FPS, TPS
-- [ ] Population counts per entity type
+- [x] Population counts per entity type
 - [ ] World statistics (total energy, avg lifespan)
 - [ ] Color-coded health indicators
 
@@ -442,3 +442,4 @@ Final polish, testing, and documentation for public release.
 ---
 
 *Last updated: 2026-02-04*
+
