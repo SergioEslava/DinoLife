@@ -29,6 +29,23 @@ public class CarnivoreEntityTests
     }
 
     [Fact]
+    public void Carnivore_KillsScavenger_WhenInCatchRadius()
+    {
+        var world = new Planet { WorldSize = new Vector2(100f, 100f) };
+        int carnivore = CreateCarnivore(world, new Vector2(10f, 10f), energy: 10f);
+        int scavenger = CreateScavenger(world, new Vector2(11f, 10f));
+
+        var grid = new SpatialGridSystem();
+        grid.Update(world, 0);
+
+        var hunting = new HuntingSystem();
+        hunting.Update(world, 1.0 / 60.0);
+
+        world.Entities[scavenger].IsAlive.Should().BeFalse();
+        world.Corpses.Should().HaveCount(1);
+    }
+
+    [Fact]
     public void Carnivore_Reproduces_WhenEnergyAboveThreshold_AndCooldownReady()
     {
         var world = new Planet { WorldSize = new Vector2(100f, 100f) };
@@ -116,6 +133,43 @@ public class CarnivoreEntityTests
         world.Diets[slot] = new Diet
         {
             FoodType = FoodType.Plant,
+            DetectionRadius = 20f,
+            EatRadius = 2f,
+            EatingDuration = 1f
+        };
+
+        return slot;
+    }
+
+    private static int CreateScavenger(Planet world, Vector2 position)
+    {
+        int slot = world.AllocateEntitySlot();
+
+        world.Entities[slot] = new Entity
+        {
+            Id = Guid.NewGuid(),
+            Type = EntityType.Scavenger,
+            Flags = ComponentFlags.Transform | ComponentFlags.Movement | ComponentFlags.Metabolism | ComponentFlags.Diet,
+            IsAlive = true
+        };
+
+        world.Transforms[slot] = new Transform(position);
+        world.Movements[slot] = new Movement
+        {
+            Velocity = Vector2.Zero,
+            Speed = 2.5f,
+            Acceleration = 5f
+        };
+        world.Metabolisms[slot] = new Metabolism
+        {
+            Energy = 50f,
+            MaxEnergy = 100f,
+            HungerRate = 1.0f,
+            EnergyGainRate = 1.0f
+        };
+        world.Diets[slot] = new Diet
+        {
+            FoodType = FoodType.Corpse,
             DetectionRadius = 20f,
             EatRadius = 2f,
             EatingDuration = 1f

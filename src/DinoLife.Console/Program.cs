@@ -19,6 +19,7 @@ public class Program
     private bool _tickOnceRequested;
     private SimulationEngine? _simulation;
     private bool _showGrid;
+    private bool _turboMode;
 
     /// <summary>
     /// Application entry point.
@@ -58,13 +59,26 @@ public class Program
                 }
                 else if (!_simulation!.IsStopped)
                 {
-                    _simulation!.Step();
+                    if (_turboMode)
+                    {
+                        for (int i = 0; i < 20; i++)
+                        {
+                            _simulation!.TickOnce();
+                        }
+                    }
+                    else
+                    {
+                        _simulation!.Step();
+                    }
                 }
 
                 WorldSnapshot snapshot = WorldSnapshotBuilder.Build(world);
                 renderer.Render(snapshot);
 
-                Thread.Sleep(16); // ~60fps
+                if (!_turboMode)
+                {
+                    Thread.Sleep(16); // ~60fps
+                }
             }
         }
         finally
@@ -177,21 +191,29 @@ public class Program
 
             if (hasMovement)
             {
+                float adjustedSpeed = type == EntityType.Scavenger ? 3.0f : speed;
                 world.Movements[slot] = new Movement
                 {
                     Velocity = Vector2.Zero,
-                    Speed = speed,
-                    Acceleration = speed * 2f
+                    Speed = adjustedSpeed,
+                    Acceleration = adjustedSpeed * 2f
                 };
             }
 
             if (flags.HasFlag(ComponentFlags.Metabolism))
             {
-                float hungerRate = type == EntityType.Scavenger ? 0.8f : 1.0f;
+                float hungerRate = type switch
+                {
+                    EntityType.Carnivore => 1.5f,
+                    EntityType.Scavenger => 0.6f,
+                    _ => 1.3f
+                };
+                float maxEnergy = type == EntityType.Scavenger ? 120f : 100f;
+                float startEnergy = type == EntityType.Scavenger ? 60f : 50f;
                 world.Metabolisms[slot] = new Metabolism
                 {
-                    Energy = 50f,
-                    MaxEnergy = 100f,
+                    Energy = startEnergy,
+                    MaxEnergy = maxEnergy,
                     HungerRate = hungerRate,
                     EnergyGainRate = 1.0f
                 };
@@ -204,8 +226,8 @@ public class Program
                     world.Diets[slot] = new Diet
                     {
                         FoodType = FoodType.Corpse,
-                        DetectionRadius = 25f,
-                        EatRadius = 1.5f,
+                        DetectionRadius = 35f,
+                        EatRadius = 2.5f,
                         EatingDuration = 1f
                     };
                 }
@@ -237,10 +259,10 @@ public class Program
                 {
                     world.Reproductions[slot] = new Reproduction
                     {
-                        ReproductionThreshold = 40f,
-                        ReproductionCost = 15f,
+                        ReproductionThreshold = 55f,
+                        ReproductionCost = 20f,
                         Cooldown = 0f,
-                        CooldownDuration = 35f
+                        CooldownDuration = 60f
                     };
                 }
                 else
@@ -253,6 +275,8 @@ public class Program
                         CooldownDuration = 11f
                     };
                 }
+
+                world.Reproductions[slot].Cooldown = (float)rng.NextDouble() * world.Reproductions[slot].CooldownDuration;
             }
 
             if (flags.HasFlag(ComponentFlags.Lifespan))
@@ -266,7 +290,7 @@ public class Program
 
                 world.Lifespans[slot] = new Lifespan
                 {
-                    Age = 0f,
+                    Age = (float)rng.NextDouble() * maxAge,
                     MaxAge = maxAge
                 };
             }
@@ -305,5 +329,13 @@ public class Program
         _showGrid = !_showGrid;
         if (_simulation is null) { return; }
         _simulation.World.DebugDrawGrid = _showGrid;
+    }
+
+    /// <summary>
+    /// Toggle turbo mode (runs multiple ticks per frame without sleeping).
+    /// </summary>
+    public void ToggleTurbo()
+    {
+        _turboMode = !_turboMode;
     }
 }

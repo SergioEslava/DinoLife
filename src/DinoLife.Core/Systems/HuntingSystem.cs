@@ -85,7 +85,7 @@ public class HuntingSystem : ISystem
             int i = candidates[c];
             if (i == hunterIndex) { continue; }
             if (!entities[i].IsAlive) { continue; }
-            if (entities[i].Type != EntityType.Herbivore) { continue; }
+            if (entities[i].Type != EntityType.Herbivore && entities[i].Type != EntityType.Scavenger) { continue; }
             if (!entities[i].Has(ComponentFlags.Transform)) { continue; }
 
             Vector2 delta = transforms[i].Position - hunterPos;

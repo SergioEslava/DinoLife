@@ -76,11 +76,11 @@ public class ReproductionSystem : ISystem
             metabolismArray[childSlot] = metabolisms[i];
             dietArray[childSlot] = diets[i];
             reproductionArray[childSlot] = reproductions[i];
-            reproductionArray[childSlot].Cooldown = 0f;
+            reproductionArray[childSlot].Cooldown = RandomRange01(entities[i].Id, planet.Tick, salt: 1) * reproductionArray[childSlot].CooldownDuration;
             if (entities[i].Has(ComponentFlags.Lifespan))
             {
                 lifespanArray[childSlot] = lifespans[i];
-                lifespanArray[childSlot].Age = 0f;
+                lifespanArray[childSlot].Age = RandomRange01(entities[i].Id, planet.Tick, salt: 2) * lifespanArray[childSlot].MaxAge;
             }
 
             ApplyStatVariation(
@@ -149,6 +149,12 @@ public class ReproductionSystem : ISystem
         value ^= value >> 17;
         value ^= value << 5;
         return value;
+    }
+
+    private static float RandomRange01(Guid seedGuid, int tick, int salt)
+    {
+        uint state = (uint)(seedGuid.GetHashCode() ^ (tick * 7919) ^ (salt * 2654435761));
+        return Next01(ref state);
     }
 
 
