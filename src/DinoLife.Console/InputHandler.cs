@@ -34,6 +34,10 @@ public class InputHandler
             case ConsoleKey.G:
                 program.ToggleGrid();
                 break;
+
+            case ConsoleKey.F:
+                program.ToggleTurbo();
+                break;
         }
     }
 }

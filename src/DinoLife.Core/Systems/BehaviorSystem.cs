@@ -16,6 +16,7 @@ public class BehaviorSystem : ISystem
     private const float FleeRadius = 12f;
     private const float ChaseRadius = 20f;
     private const float HungerThreshold = 0.3f;
+    private const float ScavengerHuntThreshold = 0.15f;
     private const float MinDirectionLengthSquared = 0.0001f;
 
     /// <summary>
@@ -48,7 +49,7 @@ public class BehaviorSystem : ISystem
                     break;
 
                 case EntityType.Scavenger:
-                    HandleScavenger(planet, i, entities, transforms, movements, diets);
+                    HandleScavenger(planet, i, entities, transforms, movements, diets, candidates);
                     break;
             }
         }
@@ -71,6 +72,13 @@ public class BehaviorSystem : ISystem
             if (TryFindNearest(planet, EntityType.Herbivore, index, entities, transforms, plants, radius, candidates, out Vector2 chaseDirection))
             {
                 movements[index].SetDirection(chaseDirection);
+                return;
+            }
+
+            if (IsVeryHungry(entities, index, metabolisms)
+                && TryFindNearest(planet, EntityType.Scavenger, index, entities, transforms, plants, radius, candidates, out Vector2 scavengerDirection))
+            {
+                movements[index].SetDirection(scavengerDirection);
                 return;
             }
         }
@@ -139,8 +147,24 @@ public class BehaviorSystem : ISystem
         Span<Entity> entities,
         Span<Transform> transforms,
         Span<Movement> movements,
-        Span<Diet> diets)
+        Span<Diet> diets,
+        List<int> candidates)
     {
+        if (TryFindNearest(
+                planet,
+                EntityType.Carnivore,
+                index,
+                entities,
+                transforms,
+                planet.Plants.AsSpan(0, planet.EntityCount),
+                FleeRadius,
+                candidates,
+                out Vector2 fleeDirection))
+        {
+            movements[index].SetDirection(new Vector2(-fleeDirection.X, -fleeDirection.Y));
+            return;
+        }
+
         // Scavengers prioritize moving toward nearby corpses.
         if (TryFindNearestCorpse(planet, index, transforms, diets, out Vector2 corpseDirection))
         {
@@ -256,6 +280,14 @@ public class BehaviorSystem : ISystem
         float max = metabolisms[index].MaxEnergy;
         if (max <= 0f) { return false; }
         return metabolisms[index].Energy <= max * HungerThreshold;
+    }
+
+    private static bool IsVeryHungry(Span<Entity> entities, int index, Span<Metabolism> metabolisms)
+    {
+        if (!entities[index].Has(ComponentFlags.Metabolism)) { return false; }
+        float max = metabolisms[index].MaxEnergy;
+        if (max <= 0f) { return false; }
+        return metabolisms[index].Energy <= max * ScavengerHuntThreshold;
     }
 
     private static bool HasDiet(Span<Entity> entities, int index, Span<Diet> diets, FoodType foodType)
