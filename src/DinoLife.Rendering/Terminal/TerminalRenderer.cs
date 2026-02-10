@@ -8,15 +8,24 @@ public sealed class TerminalRenderer : IRenderer
 {
     private char[]? _backBuffer;
     private char[]? _frontBuffer;
+    private ConsoleColor[]? _backColors;
+    private ConsoleColor[]? _frontColors;
     private int _width;
     private int _height;
     private int _drawableHeight;
     private bool _initialized;
+    private readonly ColorScheme _scheme;
+
+    public TerminalRenderer(ColorScheme? scheme = null)
+    {
+        _scheme = scheme ?? new ColorScheme();
+    }
 
     public void Initialize()
     {
         EnsureBuffers();
         Console.CursorVisible = false;
+        Console.ForegroundColor = _scheme.Default;
         Console.Clear();
         _initialized = true;
     }
@@ -46,6 +55,7 @@ public sealed class TerminalRenderer : IRenderer
         if (!_initialized) { return; }
 
         Console.CursorVisible = true;
+        Console.ForegroundColor = _scheme.Default;
         _initialized = false;
     }
 
@@ -66,9 +76,13 @@ public sealed class TerminalRenderer : IRenderer
         int size = _width * _height;
         _backBuffer = new char[size];
         _frontBuffer = new char[size];
+        _backColors = new ConsoleColor[size];
+        _frontColors = new ConsoleColor[size];
 
         Array.Fill(_backBuffer, ' ');
         Array.Fill(_frontBuffer, ' ');
+        Array.Fill(_backColors, _scheme.Default);
+        Array.Fill(_frontColors, _scheme.Default);
         Console.Clear();
     }
 
@@ -76,6 +90,10 @@ public sealed class TerminalRenderer : IRenderer
     {
         if (_backBuffer is null) { return; }
         Array.Fill(_backBuffer, ' ');
+        if (_backColors is not null)
+        {
+            Array.Fill(_backColors, _scheme.Default);
+        }
     }
 
     private void DrawEntities(WorldSnapshot snapshot)
@@ -89,7 +107,7 @@ public sealed class TerminalRenderer : IRenderer
             int y = ToScreenY(entity.Position.Y, snapshot.WorldSize.Y);
 
             char symbol = GetSymbol(entity.Type);
-            SetCell(x, y, symbol);
+            SetCell(x, y, symbol, GetColor(entity.Type));
         }
     }
 
@@ -100,7 +118,7 @@ public sealed class TerminalRenderer : IRenderer
             SnapshotCorpse corpse = snapshot.Corpses[i];
             int x = ToScreenX(corpse.Position.X, snapshot.WorldSize.X);
             int y = ToScreenY(corpse.Position.Y, snapshot.WorldSize.Y);
-            SetCell(x, y, 'X');
+            SetCell(x, y, 'X', _scheme.Corpse);
         }
     }
 
@@ -121,7 +139,7 @@ public sealed class TerminalRenderer : IRenderer
             int sx = ToScreenX(wx, worldWidth);
             for (int sy = 0; sy < _drawableHeight; sy++)
             {
-                SetCell(sx, sy, '|');
+                SetCell(sx, sy, '|', _scheme.Grid);
             }
         }
 
@@ -131,7 +149,7 @@ public sealed class TerminalRenderer : IRenderer
             int sy = ToScreenY(wy, worldHeight);
             for (int sx = 0; sx < _width; sx++)
             {
-                SetCell(sx, sy, '-');
+                SetCell(sx, sy, '-', _scheme.Grid);
             }
         }
 
@@ -143,7 +161,7 @@ public sealed class TerminalRenderer : IRenderer
             {
                 float wy = gy * cellSize;
                 int sy = ToScreenY(wy, worldHeight);
-                SetCell(sx, sy, '+');
+                SetCell(sx, sy, '+', _scheme.Grid);
             }
         }
     }
@@ -155,48 +173,48 @@ public sealed class TerminalRenderer : IRenderer
         for (int i = 0; i < _width; i++)
         {
             char c = i < hud.Length ? hud[i] : ' ';
-            SetCell(i, y, c);
+            SetCell(i, y, c, _scheme.Hud);
         }
     }
 
     private void FlushDiffToConsole()
     {
-        if (_backBuffer is null || _frontBuffer is null) { return; }
+        if (_backBuffer is null || _frontBuffer is null || _backColors is null || _frontColors is null) { return; }
 
         for (int y = 0; y < _height; y++)
         {
             int rowStart = y * _width;
-            bool rowChanged = false;
 
             for (int x = 0; x < _width; x++)
             {
                 int idx = rowStart + x;
-                if (_backBuffer[idx] != _frontBuffer[idx])
+                if (_backBuffer[idx] == _frontBuffer[idx] && _backColors[idx] == _frontColors[idx])
                 {
-                    rowChanged = true;
-                    break;
+                    continue;
                 }
+
+                Console.SetCursorPosition(x, y);
+                Console.ForegroundColor = _backColors[idx];
+                Console.Write(_backBuffer[idx]);
             }
-
-            if (!rowChanged) { continue; }
-
-            Console.SetCursorPosition(0, y);
-            Console.Write(_backBuffer, rowStart, _width);
         }
     }
 
     private void SwapBuffers()
     {
-        if (_backBuffer is null || _frontBuffer is null) { return; }
+        if (_backBuffer is null || _frontBuffer is null || _backColors is null || _frontColors is null) { return; }
         (_frontBuffer, _backBuffer) = (_backBuffer, _frontBuffer);
+        (_frontColors, _backColors) = (_backColors, _frontColors);
     }
 
-    private void SetCell(int x, int y, char c)
+    private void SetCell(int x, int y, char c, ConsoleColor color)
     {
-        if (_backBuffer is null) { return; }
+        if (_backBuffer is null || _backColors is null) { return; }
         if (x < 0 || x >= _width) { return; }
         if (y < 0 || y >= _height) { return; }
-        _backBuffer[(y * _width) + x] = c;
+        int idx = (y * _width) + x;
+        _backBuffer[idx] = c;
+        _backColors[idx] = color;
     }
 
     private int ToScreenX(float x, float worldWidth)
@@ -224,6 +242,18 @@ public sealed class TerminalRenderer : IRenderer
             DinoLife.Core.Entities.EntityType.Plant => 'P',
             DinoLife.Core.Entities.EntityType.Scavenger => 'S',
             _ => '?'
+        };
+    }
+
+    private ConsoleColor GetColor(DinoLife.Core.Entities.EntityType type)
+    {
+        return type switch
+        {
+            DinoLife.Core.Entities.EntityType.Herbivore => _scheme.Herbivore,
+            DinoLife.Core.Entities.EntityType.Carnivore => _scheme.Carnivore,
+            DinoLife.Core.Entities.EntityType.Plant => _scheme.Plant,
+            DinoLife.Core.Entities.EntityType.Scavenger => _scheme.Scavenger,
+            _ => _scheme.Default
         };
     }
 }
