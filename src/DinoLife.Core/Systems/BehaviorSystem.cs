@@ -257,7 +257,7 @@ public class BehaviorSystem : ISystem
         float bestDistSq = float.MaxValue;
         Vector2 sourcePos = transforms[sourceIndex].Position;
 
-        var corpses = planet.Corpses;
+        List<Corpse> corpses = planet.Corpses;
         for (int i = 0; i < corpses.Count; i++)
         {
             Vector2 delta = corpses[i].Position - sourcePos;
