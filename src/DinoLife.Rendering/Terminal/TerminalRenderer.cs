@@ -8,10 +8,16 @@ namespace DinoLife.Rendering.Terminal;
 /// </summary>
 public sealed class TerminalRenderer : IRenderer
 {
+    private const int TopHudHeight = 1;
+    private const int OverlayHeight = 8;
+    private const int TickHistorySize = 60;
+
     private DoubleBuffer? _doubleBuffer;
     private int _width;
     private int _height;
     private int _drawableHeight;
+    private int _viewportTop;
+    private int _viewportBottomExclusive;
     private bool _initialized;
     private readonly ColorScheme _scheme;
     private readonly Stopwatch _frameClock = Stopwatch.StartNew();
@@ -19,15 +25,22 @@ public sealed class TerminalRenderer : IRenderer
     private int _lastTick = -1;
     private float _fps;
     private float _tps;
+    private float _lastTickMs;
+    private readonly float[] _tickMsHistory = new float[TickHistorySize];
+    private int _tickMsCount;
+    private int _tickMsWriteIndex;
 
     public TerminalRenderer(ColorScheme? scheme = null)
     {
         _scheme = scheme ?? new ColorScheme();
     }
 
+    public bool ShowPerformanceOverlay { get; set; }
+
     public void Initialize()
     {
         EnsureBuffers();
+        UpdateViewport();
         Console.CursorVisible = false;
         Console.ForegroundColor = _scheme.Default;
         Console.Clear();
@@ -39,6 +52,7 @@ public sealed class TerminalRenderer : IRenderer
         if (!_initialized) { Initialize(); }
 
         EnsureBuffers();
+        UpdateViewport();
         ClearBackBuffer();
         UpdateRates(snapshot.Tick);
         DrawHud(snapshot);
@@ -50,6 +64,7 @@ public sealed class TerminalRenderer : IRenderer
 
         DrawCorpses(snapshot);
         DrawEntities(snapshot);
+        DrawPerformanceOverlay(snapshot);
 
         FlushDiffToConsole();
         SwapBuffers();
@@ -76,7 +91,6 @@ public sealed class TerminalRenderer : IRenderer
 
         _width = width;
         _height = height;
-        _drawableHeight = Math.Max(1, _height - 1); // Reserve first line for HUD
 
         if (_doubleBuffer is null)
         {
@@ -93,6 +107,14 @@ public sealed class TerminalRenderer : IRenderer
     private void ClearBackBuffer()
     {
         _doubleBuffer?.ClearBack();
+    }
+
+    private void UpdateViewport()
+    {
+        _viewportTop = TopHudHeight;
+        int reservedBottom = ShowPerformanceOverlay ? OverlayHeight : 0;
+        _viewportBottomExclusive = Math.Max(_viewportTop + 1, _height - reservedBottom);
+        _drawableHeight = Math.Max(1, _viewportBottomExclusive - _viewportTop);
     }
 
     private void DrawEntities(WorldSnapshot snapshot)
@@ -113,7 +135,7 @@ public sealed class TerminalRenderer : IRenderer
             if (!IsInsideWorld(entity.Position, snapshot.WorldSize)) { continue; }
 
             int x = ToScreenX(entity.Position.X, snapshot.WorldSize.X);
-            int y = 1 + ToScreenY(entity.Position.Y, snapshot.WorldSize.Y);
+            int y = _viewportTop + ToScreenY(entity.Position.Y, snapshot.WorldSize.Y);
 
             char symbol = GetSymbol(entity.Type);
             SetCell(x, y, symbol, GetColor(entity.Type));
@@ -127,7 +149,7 @@ public sealed class TerminalRenderer : IRenderer
             SnapshotCorpse corpse = snapshot.Corpses[i];
             if (!IsInsideWorld(corpse.Position, snapshot.WorldSize)) { continue; }
             int x = ToScreenX(corpse.Position.X, snapshot.WorldSize.X);
-            int y = 1 + ToScreenY(corpse.Position.Y, snapshot.WorldSize.Y);
+            int y = _viewportTop + ToScreenY(corpse.Position.Y, snapshot.WorldSize.Y);
             SetCell(x, y, 'X', _scheme.Corpse);
         }
     }
@@ -156,14 +178,14 @@ public sealed class TerminalRenderer : IRenderer
             int sx = ToScreenX(wx, worldWidth);
             for (int sy = 0; sy < _drawableHeight; sy++)
             {
-                SetCell(sx, sy + 1, '|', _scheme.Grid);
+                SetCell(sx, sy + _viewportTop, '|', _scheme.Grid);
             }
         }
 
         for (int gy = 1; gy < cellsY; gy++)
         {
             float wy = gy * cellSize;
-            int sy = 1 + ToScreenY(wy, worldHeight);
+            int sy = _viewportTop + ToScreenY(wy, worldHeight);
             for (int sx = 0; sx < _width; sx++)
             {
                 SetCell(sx, sy, '-', _scheme.Grid);
@@ -177,7 +199,7 @@ public sealed class TerminalRenderer : IRenderer
             for (int gy = 1; gy < cellsY; gy++)
             {
                 float wy = gy * cellSize;
-                int sy = 1 + ToScreenY(wy, worldHeight);
+                int sy = _viewportTop + ToScreenY(wy, worldHeight);
                 SetCell(sx, sy, '+', _scheme.Grid);
             }
         }
@@ -200,6 +222,85 @@ public sealed class TerminalRenderer : IRenderer
         x = WriteText(x, y, $"L:{snapshot.Stats.HealthLow} ", _scheme.HealthLow);
         x = WriteText(x, y, $"M:{snapshot.Stats.HealthMedium} ", _scheme.HealthMedium);
         WriteText(x, y, $"H:{snapshot.Stats.HealthHigh}", _scheme.HealthHigh);
+    }
+
+    private void DrawPerformanceOverlay(WorldSnapshot snapshot)
+    {
+        if (!ShowPerformanceOverlay) { return; }
+        if (_height <= TopHudHeight + 2) { return; }
+
+        int panelTop = Math.Max(_viewportBottomExclusive, TopHudHeight + 1);
+        int panelBottomExclusive = _height;
+
+        for (int y = panelTop; y < panelBottomExclusive; y++)
+        {
+            for (int x = 0; x < _width; x++)
+            {
+                SetCell(x, y, ' ', _scheme.Hud);
+            }
+        }
+
+        int entitiesAlive = snapshot.Stats.Herbivores
+            + snapshot.Stats.Carnivores
+            + snapshot.Stats.Plants
+            + snapshot.Stats.Scavengers;
+        float memoryMb = GC.GetTotalMemory(false) / (1024f * 1024f);
+
+        int line = panelTop;
+        int px = 0;
+        px = WriteText(px, line, "PERF [O toggle] ", _scheme.Hud);
+        px = WriteText(px, line, $"FPS:{_fps:0.0} ", _scheme.Hud);
+        px = WriteText(px, line, $"TPS:{_tps:0.0} ", _scheme.Hud);
+        px = WriteText(px, line, $"TickMs:{_lastTickMs:0.00} ", _scheme.Hud);
+        px = WriteText(px, line, $"Mem:{memoryMb:0.0}MB ", _scheme.Hud);
+        WriteText(px, line, $"Ent:{entitiesAlive}", _scheme.Hud);
+
+        int graphLabelY = line + 1;
+        if (graphLabelY < panelBottomExclusive)
+        {
+            WriteText(0, graphLabelY, "Tick time graph (last 60)", _scheme.Hud);
+        }
+
+        int graphTop = line + 2;
+        int graphRows = Math.Max(1, panelBottomExclusive - graphTop - 1);
+        int graphWidth = Math.Min(TickHistorySize, Math.Max(0, _width - 2));
+        if (graphRows <= 0 || graphWidth <= 0 || _tickMsCount == 0) { return; }
+
+        int points = Math.Min(_tickMsCount, graphWidth);
+        float maxTickMs = 0.1f;
+        for (int i = 0; i < points; i++)
+        {
+            float sample = GetHistorySampleFromOldest(points, i);
+            if (sample > maxTickMs) { maxTickMs = sample; }
+        }
+
+        for (int i = 0; i < points; i++)
+        {
+            float sample = GetHistorySampleFromOldest(points, i);
+            int barHeight = (int)MathF.Round((sample / maxTickMs) * (graphRows - 1));
+            if (barHeight < 0) { barHeight = 0; }
+            if (barHeight > graphRows - 1) { barHeight = graphRows - 1; }
+
+            ConsoleColor barColor = sample <= 16.7f
+                ? _scheme.HealthHigh
+                : sample <= 33.3f
+                    ? _scheme.HealthMedium
+                    : _scheme.HealthLow;
+
+            int x = 1 + i;
+            for (int row = 0; row < graphRows; row++)
+            {
+                int y = graphTop + row;
+                bool filled = row >= (graphRows - 1 - barHeight);
+                SetCell(x, y, filled ? '#' : '.', filled ? barColor : _scheme.Grid);
+            }
+        }
+
+        int axisY = panelBottomExclusive - 1;
+        if (axisY >= graphTop)
+        {
+            WriteText(0, axisY, $"0ms/{maxTickMs:0.0}ms", _scheme.Hud);
+        }
     }
 
     private int WriteText(int x, int y, string text, ConsoleColor color)
@@ -230,9 +331,25 @@ public sealed class TerminalRenderer : IRenderer
         _fps = (float)(1d / deltaSeconds);
         int tickDelta = Math.Max(0, currentTick - _lastTick);
         _tps = (float)(tickDelta / deltaSeconds);
+        _lastTickMs = tickDelta > 0 ? (float)((deltaSeconds * 1000d) / tickDelta) : 0f;
+        PushTickHistory(_lastTickMs);
 
         _lastFrameTicks = nowTicks;
         _lastTick = currentTick;
+    }
+
+    private void PushTickHistory(float tickMs)
+    {
+        _tickMsHistory[_tickMsWriteIndex] = tickMs;
+        _tickMsWriteIndex = (_tickMsWriteIndex + 1) % TickHistorySize;
+        if (_tickMsCount < TickHistorySize) { _tickMsCount++; }
+    }
+
+    private float GetHistorySampleFromOldest(int points, int offset)
+    {
+        int oldest = (_tickMsWriteIndex - points + TickHistorySize) % TickHistorySize;
+        int idx = (oldest + offset) % TickHistorySize;
+        return _tickMsHistory[idx];
     }
 
     private void FlushDiffToConsole()
