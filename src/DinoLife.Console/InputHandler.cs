@@ -35,7 +35,57 @@ public class InputHandler
                 program.ToggleGrid();
                 break;
 
+            case ConsoleKey.LeftArrow:
+            case ConsoleKey.A:
+                program.PanLeft();
+                break;
+
+            case ConsoleKey.RightArrow:
+            case ConsoleKey.D:
+                program.PanRight();
+                break;
+
+            case ConsoleKey.UpArrow:
+            case ConsoleKey.W:
+                program.PanUp();
+                break;
+
+            case ConsoleKey.DownArrow:
+            case ConsoleKey.S:
+                program.PanDown();
+                break;
+
+            case ConsoleKey.Add:
+            case ConsoleKey.OemPlus:
+                program.ZoomIn();
+                break;
+
+            case ConsoleKey.Subtract:
+            case ConsoleKey.OemMinus:
+                program.ZoomOut();
+                break;
+
+            case ConsoleKey.Home:
+                program.ResetCamera();
+                break;
+
             case ConsoleKey.F:
+                program.ToggleFollowSelected();
+                break;
+
+            case ConsoleKey.Tab:
+                program.SelectNextEntity();
+                break;
+
+            case ConsoleKey.Oem4:
+                program.SelectPreviousEntity();
+                break;
+
+            case ConsoleKey.Oem6:
+                program.SelectNextEntity();
+                break;
+
+            case ConsoleKey.U:
                 program.ToggleTurbo();
                 break;
 

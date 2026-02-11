@@ -40,7 +40,7 @@ public static class WorldSnapshotBuilder
                 isAlive = false;
             }
 
-            snapshotEntities[i] = new SnapshotEntity(entity.Type, position, isAlive);
+            snapshotEntities[i] = new SnapshotEntity(entity.Id, entity.Type, position, isAlive);
 
             if (!isAlive) { continue; }
 

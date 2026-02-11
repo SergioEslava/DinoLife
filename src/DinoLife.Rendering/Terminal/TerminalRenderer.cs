@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using DinoLife.Core.Entities;
+using DinoLife.Core.Utils;
+
 namespace DinoLife.Rendering.Terminal;
 
 /// <summary>
@@ -11,6 +13,8 @@ public sealed class TerminalRenderer : IRenderer
     private const int TopHudHeight = 1;
     private const int OverlayHeight = 8;
     private const int TickHistorySize = 60;
+    private const float MinZoom = 0.25f;
+    private const float MaxZoom = 4.0f;
 
     private DoubleBuffer? _doubleBuffer;
     private int _width;
@@ -30,12 +34,26 @@ public sealed class TerminalRenderer : IRenderer
     private int _tickMsCount;
     private int _tickMsWriteIndex;
 
+    private bool _cameraInitialized;
+    private Vector2 _lastWorldSize;
+    private float _cameraCenterX;
+    private float _cameraCenterY;
+    private float _zoom = 1f;
+    private float _cameraViewWidth = 1f;
+    private float _cameraViewHeight = 1f;
+    private float _cameraMinX;
+    private float _cameraMinY;
+
     public TerminalRenderer(ColorScheme? scheme = null)
     {
         _scheme = scheme ?? new ColorScheme();
     }
 
     public bool ShowPerformanceOverlay { get; set; }
+
+    public Guid? SelectedEntityId { get; set; }
+
+    public Guid? FollowEntityId { get; set; }
 
     public void Initialize()
     {
@@ -53,6 +71,7 @@ public sealed class TerminalRenderer : IRenderer
 
         EnsureBuffers();
         UpdateViewport();
+        PrepareCamera(snapshot);
         ClearBackBuffer();
         UpdateRates(snapshot.Tick);
         DrawHud(snapshot);
@@ -77,6 +96,35 @@ public sealed class TerminalRenderer : IRenderer
         Console.CursorVisible = true;
         Console.ForegroundColor = _scheme.Default;
         _initialized = false;
+    }
+
+    public void Pan(float normalizedX, float normalizedY)
+    {
+        if (!_cameraInitialized) { return; }
+
+        float deltaX = normalizedX * _cameraViewWidth * 0.1f;
+        float deltaY = normalizedY * _cameraViewHeight * 0.1f;
+        _cameraCenterX += deltaX;
+        _cameraCenterY += deltaY;
+        ClampCameraCenter();
+    }
+
+    public void ZoomIn()
+    {
+        _zoom = Math.Clamp(_zoom * 1.15f, MinZoom, MaxZoom);
+        ClampCameraCenter();
+    }
+
+    public void ZoomOut()
+    {
+        _zoom = Math.Clamp(_zoom / 1.15f, MinZoom, MaxZoom);
+        ClampCameraCenter();
+    }
+
+    public void ResetCamera()
+    {
+        _cameraInitialized = false;
+        _zoom = 1f;
     }
 
     private void EnsureBuffers()
@@ -117,6 +165,66 @@ public sealed class TerminalRenderer : IRenderer
         _drawableHeight = Math.Max(1, _viewportBottomExclusive - _viewportTop);
     }
 
+    private void PrepareCamera(WorldSnapshot snapshot)
+    {
+        _lastWorldSize = snapshot.WorldSize;
+        if (_lastWorldSize.X <= 0f || _lastWorldSize.Y <= 0f)
+        {
+            _cameraViewWidth = 1f;
+            _cameraViewHeight = 1f;
+            _cameraMinX = 0f;
+            _cameraMinY = 0f;
+            return;
+        }
+
+        if (!_cameraInitialized)
+        {
+            _cameraCenterX = _lastWorldSize.X * 0.5f;
+            _cameraCenterY = _lastWorldSize.Y * 0.5f;
+            _cameraInitialized = true;
+        }
+
+        if (FollowEntityId.HasValue && TryGetEntityPosition(snapshot, FollowEntityId.Value, out Vector2 followPos))
+        {
+            _cameraCenterX = followPos.X;
+            _cameraCenterY = followPos.Y;
+        }
+
+        ClampCameraCenter();
+    }
+
+    private void ClampCameraCenter()
+    {
+        if (_lastWorldSize.X <= 0f || _lastWorldSize.Y <= 0f) { return; }
+
+        _cameraViewWidth = Math.Max(1f, _lastWorldSize.X / _zoom);
+        _cameraViewHeight = Math.Max(1f, _lastWorldSize.Y / _zoom);
+
+        float halfW = _cameraViewWidth * 0.5f;
+        float halfH = _cameraViewHeight * 0.5f;
+
+        if (_cameraViewWidth >= _lastWorldSize.X)
+        {
+            _cameraCenterX = _lastWorldSize.X * 0.5f;
+        }
+        else
+        {
+            _cameraCenterX = Math.Clamp(_cameraCenterX, halfW, _lastWorldSize.X - halfW);
+        }
+
+        if (_cameraViewHeight >= _lastWorldSize.Y)
+        {
+            _cameraCenterY = _lastWorldSize.Y * 0.5f;
+        }
+        else
+        {
+            _cameraCenterY = Math.Clamp(_cameraCenterY, halfH, _lastWorldSize.Y - halfH);
+        }
+
+        _cameraMinX = _cameraCenterX - halfW;
+        _cameraMinY = _cameraCenterY - halfH;
+    }
+
     private void DrawEntities(WorldSnapshot snapshot)
     {
         DrawEntityLayer(snapshot, EntityType.Plant);
@@ -133,12 +241,11 @@ public sealed class TerminalRenderer : IRenderer
             if (!entity.IsAlive) { continue; }
             if (entity.Type != layerType) { continue; }
             if (!IsInsideWorld(entity.Position, snapshot.WorldSize)) { continue; }
-
-            int x = ToScreenX(entity.Position.X, snapshot.WorldSize.X);
-            int y = _viewportTop + ToScreenY(entity.Position.Y, snapshot.WorldSize.Y);
+            if (!TryProjectToScreen(entity.Position, out int x, out int y)) { continue; }
 
             char symbol = GetSymbol(entity.Type);
-            SetCell(x, y, symbol, GetColor(entity.Type));
+            ConsoleColor color = entity.Id == SelectedEntityId ? _scheme.SelectedEntity : GetColor(entity.Type);
+            SetCell(x, y, symbol, color);
         }
     }
 
@@ -148,13 +255,12 @@ public sealed class TerminalRenderer : IRenderer
         {
             SnapshotCorpse corpse = snapshot.Corpses[i];
             if (!IsInsideWorld(corpse.Position, snapshot.WorldSize)) { continue; }
-            int x = ToScreenX(corpse.Position.X, snapshot.WorldSize.X);
-            int y = _viewportTop + ToScreenY(corpse.Position.Y, snapshot.WorldSize.Y);
+            if (!TryProjectToScreen(corpse.Position, out int x, out int y)) { continue; }
             SetCell(x, y, 'X', _scheme.Corpse);
         }
     }
 
-    private static bool IsInsideWorld(DinoLife.Core.Utils.Vector2 position, DinoLife.Core.Utils.Vector2 worldSize)
+    private static bool IsInsideWorld(Vector2 position, Vector2 worldSize)
     {
         if (worldSize.X <= 0f || worldSize.Y <= 0f) { return false; }
         return position.X >= 0f && position.X <= worldSize.X
@@ -166,41 +272,45 @@ public sealed class TerminalRenderer : IRenderer
         float cellSize = snapshot.GridCellSize;
         if (cellSize <= 0f) { return; }
 
-        float worldWidth = snapshot.WorldSize.X;
-        float worldHeight = snapshot.WorldSize.Y;
+        float maxX = _cameraMinX + _cameraViewWidth;
+        float maxY = _cameraMinY + _cameraViewHeight;
 
-        int cellsX = (int)MathF.Ceiling(worldWidth / cellSize);
-        int cellsY = (int)MathF.Ceiling(worldHeight / cellSize);
+        int startGx = Math.Max(1, (int)MathF.Floor(_cameraMinX / cellSize) + 1);
+        int endGx = Math.Max(startGx, (int)MathF.Ceiling(maxX / cellSize));
 
-        for (int gx = 1; gx < cellsX; gx++)
+        for (int gx = startGx; gx < endGx; gx++)
         {
             float wx = gx * cellSize;
-            int sx = ToScreenX(wx, worldWidth);
-            for (int sy = 0; sy < _drawableHeight; sy++)
+            if (!TryProjectToScreen(new Vector2(wx, _cameraMinY), out int sx, out _)) { continue; }
+            for (int sy = _viewportTop; sy < _viewportBottomExclusive; sy++)
             {
-                SetCell(sx, sy + _viewportTop, '|', _scheme.Grid);
+                SetCell(sx, sy, '|', _scheme.Grid);
             }
         }
 
-        for (int gy = 1; gy < cellsY; gy++)
+        int startGy = Math.Max(1, (int)MathF.Floor(_cameraMinY / cellSize) + 1);
+        int endGy = Math.Max(startGy, (int)MathF.Ceiling(maxY / cellSize));
+
+        for (int gy = startGy; gy < endGy; gy++)
         {
             float wy = gy * cellSize;
-            int sy = _viewportTop + ToScreenY(wy, worldHeight);
+            if (!TryProjectToScreen(new Vector2(_cameraMinX, wy), out _, out int sy)) { continue; }
             for (int sx = 0; sx < _width; sx++)
             {
                 SetCell(sx, sy, '-', _scheme.Grid);
             }
         }
 
-        for (int gx = 1; gx < cellsX; gx++)
+        for (int gx = startGx; gx < endGx; gx++)
         {
             float wx = gx * cellSize;
-            int sx = ToScreenX(wx, worldWidth);
-            for (int gy = 1; gy < cellsY; gy++)
+            for (int gy = startGy; gy < endGy; gy++)
             {
                 float wy = gy * cellSize;
-                int sy = _viewportTop + ToScreenY(wy, worldHeight);
-                SetCell(sx, sy, '+', _scheme.Grid);
+                if (TryProjectToScreen(new Vector2(wx, wy), out int sx, out int sy))
+                {
+                    SetCell(sx, sy, '+', _scheme.Grid);
+                }
             }
         }
     }
@@ -214,6 +324,9 @@ public sealed class TerminalRenderer : IRenderer
         x = WriteText(x, y, $"Tick:{snapshot.Tick} ", _scheme.Hud);
         x = WriteText(x, y, $"FPS:{_fps:0.0} ", _scheme.Hud);
         x = WriteText(x, y, $"TPS:{_tps:0.0} ", _scheme.Hud);
+        x = WriteText(x, y, $"Cam:{_cameraCenterX:0.0},{_cameraCenterY:0.0} ", _scheme.Hud);
+        x = WriteText(x, y, $"Z:{_zoom:0.00} ", _scheme.Hud);
+        x = WriteText(x, y, FollowEntityId.HasValue ? "Follow:ON " : "Follow:OFF ", _scheme.Hud);
         x = WriteText(x, y, $"H:{snapshot.Stats.Herbivores} C:{snapshot.Stats.Carnivores} P:{snapshot.Stats.Plants} S:{snapshot.Stats.Scavengers} ", _scheme.Hud);
         x = WriteText(x, y, $"E:{snapshot.Stats.TotalEnergy:0.0} ", _scheme.Hud);
         x = WriteText(x, y, $"AvgAge:{snapshot.Stats.AverageLifespan:0.0}s ", _scheme.Hud);
@@ -221,7 +334,16 @@ public sealed class TerminalRenderer : IRenderer
         x = WriteText(x, y, "HP ", _scheme.Hud);
         x = WriteText(x, y, $"L:{snapshot.Stats.HealthLow} ", _scheme.HealthLow);
         x = WriteText(x, y, $"M:{snapshot.Stats.HealthMedium} ", _scheme.HealthMedium);
-        WriteText(x, y, $"H:{snapshot.Stats.HealthHigh}", _scheme.HealthHigh);
+        x = WriteText(x, y, $"H:{snapshot.Stats.HealthHigh} ", _scheme.HealthHigh);
+
+        if (TryGetSelectedEntity(snapshot, out SnapshotEntity selected))
+        {
+            WriteText(x, y, $"Sel:{selected.Type} {selected.Id.ToString()[..6]}", _scheme.SelectedEntity);
+        }
+        else if (SelectedEntityId.HasValue)
+        {
+            WriteText(x, y, "Sel:<none>", _scheme.SelectedEntity);
+        }
     }
 
     private void DrawPerformanceOverlay(WorldSnapshot snapshot)
@@ -352,6 +474,81 @@ public sealed class TerminalRenderer : IRenderer
         return _tickMsHistory[idx];
     }
 
+    private bool TryProjectToScreen(Vector2 worldPos, out int x, out int y)
+    {
+        x = 0;
+        y = 0;
+        if (_cameraViewWidth <= 0f || _cameraViewHeight <= 0f) { return false; }
+
+        float tx = (worldPos.X - _cameraMinX) / _cameraViewWidth;
+        float ty = (worldPos.Y - _cameraMinY) / _cameraViewHeight;
+        if (tx < 0f || tx > 1f || ty < 0f || ty > 1f) { return false; }
+
+        x = Math.Clamp((int)(tx * (_width - 1)), 0, _width - 1);
+        y = _viewportTop + Math.Clamp((int)(ty * (_drawableHeight - 1)), 0, _drawableHeight - 1);
+        return true;
+    }
+
+    private static char GetSymbol(EntityType type)
+    {
+        return type switch
+        {
+            EntityType.Herbivore => 'H',
+            EntityType.Carnivore => 'C',
+            EntityType.Plant => '*',
+            EntityType.Scavenger => 'S',
+            _ => '?'
+        };
+    }
+
+    private ConsoleColor GetColor(EntityType type)
+    {
+        return type switch
+        {
+            EntityType.Herbivore => _scheme.Herbivore,
+            EntityType.Carnivore => _scheme.Carnivore,
+            EntityType.Plant => _scheme.Plant,
+            EntityType.Scavenger => _scheme.Scavenger,
+            _ => _scheme.Default
+        };
+    }
+
+    private bool TryGetEntityPosition(WorldSnapshot snapshot, Guid id, out Vector2 position)
+    {
+        for (int i = 0; i < snapshot.Entities.Length; i++)
+        {
+            if (snapshot.Entities[i].Id == id && snapshot.Entities[i].IsAlive)
+            {
+                position = snapshot.Entities[i].Position;
+                return true;
+            }
+        }
+
+        position = Vector2.Zero;
+        return false;
+    }
+
+    private bool TryGetSelectedEntity(WorldSnapshot snapshot, out SnapshotEntity selected)
+    {
+        if (!SelectedEntityId.HasValue)
+        {
+            selected = default;
+            return false;
+        }
+
+        for (int i = 0; i < snapshot.Entities.Length; i++)
+        {
+            if (snapshot.Entities[i].Id == SelectedEntityId.Value && snapshot.Entities[i].IsAlive)
+            {
+                selected = snapshot.Entities[i];
+                return true;
+            }
+        }
+
+        selected = default;
+        return false;
+    }
+
     private void FlushDiffToConsole()
     {
         if (_doubleBuffer is null) { return; }
@@ -372,45 +569,5 @@ public sealed class TerminalRenderer : IRenderer
     private void SetCell(int x, int y, char c, ConsoleColor color)
     {
         _doubleBuffer?.SetBackCell(x, y, c, color);
-    }
-
-    private int ToScreenX(float x, float worldWidth)
-    {
-        if (worldWidth <= 0f) { return 0; }
-        float t = x / worldWidth;
-        int ix = (int)(t * (_width - 1));
-        return Math.Clamp(ix, 0, _width - 1);
-    }
-
-    private int ToScreenY(float y, float worldHeight)
-    {
-        if (worldHeight <= 0f) { return 0; }
-        float t = y / worldHeight;
-        int iy = (int)(t * (_drawableHeight - 1));
-        return Math.Clamp(iy, 0, _drawableHeight - 1);
-    }
-
-    private static char GetSymbol(DinoLife.Core.Entities.EntityType type)
-    {
-        return type switch
-        {
-            DinoLife.Core.Entities.EntityType.Herbivore => 'H',
-            DinoLife.Core.Entities.EntityType.Carnivore => 'C',
-            DinoLife.Core.Entities.EntityType.Plant => 'P',
-            DinoLife.Core.Entities.EntityType.Scavenger => 'S',
-            _ => '?'
-        };
-    }
-
-    private ConsoleColor GetColor(DinoLife.Core.Entities.EntityType type)
-    {
-        return type switch
-        {
-            DinoLife.Core.Entities.EntityType.Herbivore => _scheme.Herbivore,
-            DinoLife.Core.Entities.EntityType.Carnivore => _scheme.Carnivore,
-            DinoLife.Core.Entities.EntityType.Plant => _scheme.Plant,
-            DinoLife.Core.Entities.EntityType.Scavenger => _scheme.Scavenger,
-            _ => _scheme.Default
-        };
     }
 }

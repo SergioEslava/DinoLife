@@ -17,7 +17,7 @@ public sealed class WorldSnapshot
     public required SnapshotStats Stats { get; init; }
 }
 
-public readonly record struct SnapshotEntity(EntityType Type, Vector2 Position, bool IsAlive);
+public readonly record struct SnapshotEntity(Guid Id, EntityType Type, Vector2 Position, bool IsAlive);
 public readonly record struct SnapshotCorpse(Vector2 Position);
 
 public readonly record struct SnapshotStats(

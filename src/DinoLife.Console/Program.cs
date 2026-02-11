@@ -22,6 +22,8 @@ public class Program
     private bool _showGrid;
     private bool _turboMode;
     private bool _showPerformanceOverlay;
+    private bool _followEntity;
+    private int _selectedEntitySlot = -1;
 
     /// <summary>
     /// Application entry point.
@@ -79,6 +81,8 @@ public class Program
 
                 WorldSnapshot snapshot = WorldSnapshotBuilder.Build(world);
                 _renderer.ShowPerformanceOverlay = _showPerformanceOverlay;
+                _renderer.SelectedEntityId = GetSelectedEntityId();
+                _renderer.FollowEntityId = _followEntity ? GetSelectedEntityId() : null;
                 _renderer.Render(snapshot);
 
                 if (!_turboMode)
@@ -345,6 +349,41 @@ public class Program
         _turboMode = !_turboMode;
     }
 
+    public void PanLeft() => _renderer?.Pan(-1f, 0f);
+
+    public void PanRight() => _renderer?.Pan(1f, 0f);
+
+    public void PanUp() => _renderer?.Pan(0f, -1f);
+
+    public void PanDown() => _renderer?.Pan(0f, 1f);
+
+    public void ZoomIn() => _renderer?.ZoomIn();
+
+    public void ZoomOut() => _renderer?.ZoomOut();
+
+    public void ResetCamera() => _renderer?.ResetCamera();
+
+    public void ToggleFollowSelected()
+    {
+        if (!EnsureSelectedEntity())
+        {
+            _followEntity = false;
+            return;
+        }
+
+        _followEntity = !_followEntity;
+    }
+
+    public void SelectNextEntity()
+    {
+        SelectRelativeEntity(1);
+    }
+
+    public void SelectPreviousEntity()
+    {
+        SelectRelativeEntity(-1);
+    }
+
     /// <summary>
     /// Toggle performance overlay rendering.
     /// </summary>
@@ -355,5 +394,65 @@ public class Program
         {
             _renderer.ShowPerformanceOverlay = _showPerformanceOverlay;
         }
+    }
+
+    private void SelectRelativeEntity(int direction)
+    {
+        if (_simulation is null) { return; }
+        Planet world = _simulation.World;
+        if (world.EntityCount == 0)
+        {
+            _selectedEntitySlot = -1;
+            _followEntity = false;
+            return;
+        }
+
+        int start = _selectedEntitySlot;
+        if (start < 0 || start >= world.EntityCount) { start = direction > 0 ? -1 : 0; }
+
+        int slot = start;
+        for (int i = 0; i < world.EntityCount; i++)
+        {
+            slot += direction;
+            if (slot >= world.EntityCount) { slot = 0; }
+            if (slot < 0) { slot = world.EntityCount - 1; }
+
+            if (world.Entities[slot].IsAlive)
+            {
+                _selectedEntitySlot = slot;
+                return;
+            }
+        }
+
+        _selectedEntitySlot = -1;
+        _followEntity = false;
+    }
+
+    private bool EnsureSelectedEntity()
+    {
+        if (_simulation is null) { return false; }
+        Planet world = _simulation.World;
+        if (_selectedEntitySlot >= 0 && _selectedEntitySlot < world.EntityCount && world.Entities[_selectedEntitySlot].IsAlive)
+        {
+            return true;
+        }
+
+        for (int i = 0; i < world.EntityCount; i++)
+        {
+            if (world.Entities[i].IsAlive)
+            {
+                _selectedEntitySlot = i;
+                return true;
+            }
+        }
+
+        _selectedEntitySlot = -1;
+        return false;
+    }
+
+    private Guid? GetSelectedEntityId()
+    {
+        if (!EnsureSelectedEntity()) { return null; }
+        return _simulation!.World.Entities[_selectedEntitySlot].Id;
     }
 }
