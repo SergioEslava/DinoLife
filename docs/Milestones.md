@@ -207,10 +207,10 @@ Create terminal-based visualization with real-time statistics and debugging tool
 - [x] Layering (plants → herbivores → carnivores)
 
 #### 3.4 HUD Display
-- [ ] Top bar: Tick count, FPS, TPS
+- [x] Top bar: Tick count, FPS, TPS
 - [x] Population counts per entity type
-- [ ] World statistics (total energy, avg lifespan)
-- [ ] Color-coded health indicators
+- [x] World statistics (total energy, avg lifespan)
+- [x] Color-coded health indicators
 
 #### 3.5 Performance Overlay
 - [ ] Real-time FPS counter

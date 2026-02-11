@@ -23,6 +23,12 @@ public static class WorldSnapshotBuilder
         int carnivores = 0;
         int plants = 0;
         int scavengers = 0;
+        float totalEnergy = 0f;
+        float totalAge = 0f;
+        int lifespanCount = 0;
+        int healthLow = 0;
+        int healthMedium = 0;
+        int healthHigh = 0;
 
         for (int i = 0; i < entities.Length; i++)
         {
@@ -53,12 +59,42 @@ public static class WorldSnapshotBuilder
                     scavengers++;
                     break;
             }
+
+            if (entity.Has(ComponentFlags.Metabolism))
+            {
+                Metabolism metabolism = planet.Metabolisms[i];
+                totalEnergy += metabolism.Energy;
+
+                float healthRatio = metabolism.MaxEnergy > 0f
+                    ? metabolism.Energy / metabolism.MaxEnergy
+                    : 0f;
+                if (healthRatio < 0.33f) { healthLow++; }
+                else if (healthRatio < 0.66f) { healthMedium++; }
+                else { healthHigh++; }
+            }
+            else if (entity.Has(ComponentFlags.Plant))
+            {
+                totalEnergy += plantComponents[i].Energy;
+            }
+
+            if (entity.Has(ComponentFlags.Lifespan))
+            {
+                totalAge += planet.Lifespans[i].Age;
+                lifespanCount++;
+            }
+        }
+
+        for (int i = 0; i < planet.Corpses.Count; i++)
+        {
+            totalEnergy += planet.Corpses[i].Energy;
         }
 
         for (int i = 0; i < planet.Corpses.Count; i++)
         {
             snapshotCorpses[i] = new SnapshotCorpse(planet.Corpses[i].Position);
         }
+
+        float averageLifespan = lifespanCount > 0 ? totalAge / lifespanCount : 0f;
 
         return new WorldSnapshot
         {
@@ -68,7 +104,16 @@ public static class WorldSnapshotBuilder
             ShowGrid = planet.DebugDrawGrid,
             Entities = snapshotEntities,
             Corpses = snapshotCorpses,
-            Stats = new SnapshotStats(herbivores, carnivores, plants, scavengers)
+            Stats = new SnapshotStats(
+                herbivores,
+                carnivores,
+                plants,
+                scavengers,
+                totalEnergy,
+                averageLifespan,
+                healthLow,
+                healthMedium,
+                healthHigh)
         };
     }
 }
