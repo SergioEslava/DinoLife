@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using DinoLife.Core.Entities;
 namespace DinoLife.Rendering.Terminal;
 
@@ -13,6 +14,11 @@ public sealed class TerminalRenderer : IRenderer
     private int _drawableHeight;
     private bool _initialized;
     private readonly ColorScheme _scheme;
+    private readonly Stopwatch _frameClock = Stopwatch.StartNew();
+    private long _lastFrameTicks;
+    private int _lastTick = -1;
+    private float _fps;
+    private float _tps;
 
     public TerminalRenderer(ColorScheme? scheme = null)
     {
@@ -34,6 +40,8 @@ public sealed class TerminalRenderer : IRenderer
 
         EnsureBuffers();
         ClearBackBuffer();
+        UpdateRates(snapshot.Tick);
+        DrawHud(snapshot);
 
         if (snapshot.ShowGrid)
         {
@@ -42,7 +50,6 @@ public sealed class TerminalRenderer : IRenderer
 
         DrawCorpses(snapshot);
         DrawEntities(snapshot);
-        DrawHud(snapshot);
 
         FlushDiffToConsole();
         SwapBuffers();
@@ -69,7 +76,7 @@ public sealed class TerminalRenderer : IRenderer
 
         _width = width;
         _height = height;
-        _drawableHeight = Math.Max(1, _height - 1); // Reserve last line for HUD
+        _drawableHeight = Math.Max(1, _height - 1); // Reserve first line for HUD
 
         if (_doubleBuffer is null)
         {
@@ -106,7 +113,7 @@ public sealed class TerminalRenderer : IRenderer
             if (!IsInsideWorld(entity.Position, snapshot.WorldSize)) { continue; }
 
             int x = ToScreenX(entity.Position.X, snapshot.WorldSize.X);
-            int y = ToScreenY(entity.Position.Y, snapshot.WorldSize.Y);
+            int y = 1 + ToScreenY(entity.Position.Y, snapshot.WorldSize.Y);
 
             char symbol = GetSymbol(entity.Type);
             SetCell(x, y, symbol, GetColor(entity.Type));
@@ -120,7 +127,7 @@ public sealed class TerminalRenderer : IRenderer
             SnapshotCorpse corpse = snapshot.Corpses[i];
             if (!IsInsideWorld(corpse.Position, snapshot.WorldSize)) { continue; }
             int x = ToScreenX(corpse.Position.X, snapshot.WorldSize.X);
-            int y = ToScreenY(corpse.Position.Y, snapshot.WorldSize.Y);
+            int y = 1 + ToScreenY(corpse.Position.Y, snapshot.WorldSize.Y);
             SetCell(x, y, 'X', _scheme.Corpse);
         }
     }
@@ -149,14 +156,14 @@ public sealed class TerminalRenderer : IRenderer
             int sx = ToScreenX(wx, worldWidth);
             for (int sy = 0; sy < _drawableHeight; sy++)
             {
-                SetCell(sx, sy, '|', _scheme.Grid);
+                SetCell(sx, sy + 1, '|', _scheme.Grid);
             }
         }
 
         for (int gy = 1; gy < cellsY; gy++)
         {
             float wy = gy * cellSize;
-            int sy = ToScreenY(wy, worldHeight);
+            int sy = 1 + ToScreenY(wy, worldHeight);
             for (int sx = 0; sx < _width; sx++)
             {
                 SetCell(sx, sy, '-', _scheme.Grid);
@@ -170,7 +177,7 @@ public sealed class TerminalRenderer : IRenderer
             for (int gy = 1; gy < cellsY; gy++)
             {
                 float wy = gy * cellSize;
-                int sy = ToScreenY(wy, worldHeight);
+                int sy = 1 + ToScreenY(wy, worldHeight);
                 SetCell(sx, sy, '+', _scheme.Grid);
             }
         }
@@ -178,13 +185,54 @@ public sealed class TerminalRenderer : IRenderer
 
     private void DrawHud(WorldSnapshot snapshot)
     {
-        string hud = $"Tick {snapshot.Tick}  H:{snapshot.Stats.Herbivores} C:{snapshot.Stats.Carnivores} P:{snapshot.Stats.Plants} S:{snapshot.Stats.Scavengers}";
-        int y = _height - 1;
-        for (int i = 0; i < _width; i++)
+        int y = 0;
+        for (int i = 0; i < _width; i++) { SetCell(i, y, ' ', _scheme.Hud); }
+
+        int x = 0;
+        x = WriteText(x, y, $"Tick:{snapshot.Tick} ", _scheme.Hud);
+        x = WriteText(x, y, $"FPS:{_fps:0.0} ", _scheme.Hud);
+        x = WriteText(x, y, $"TPS:{_tps:0.0} ", _scheme.Hud);
+        x = WriteText(x, y, $"H:{snapshot.Stats.Herbivores} C:{snapshot.Stats.Carnivores} P:{snapshot.Stats.Plants} S:{snapshot.Stats.Scavengers} ", _scheme.Hud);
+        x = WriteText(x, y, $"E:{snapshot.Stats.TotalEnergy:0.0} ", _scheme.Hud);
+        x = WriteText(x, y, $"AvgAge:{snapshot.Stats.AverageLifespan:0.0}s ", _scheme.Hud);
+
+        x = WriteText(x, y, "HP ", _scheme.Hud);
+        x = WriteText(x, y, $"L:{snapshot.Stats.HealthLow} ", _scheme.HealthLow);
+        x = WriteText(x, y, $"M:{snapshot.Stats.HealthMedium} ", _scheme.HealthMedium);
+        WriteText(x, y, $"H:{snapshot.Stats.HealthHigh}", _scheme.HealthHigh);
+    }
+
+    private int WriteText(int x, int y, string text, ConsoleColor color)
+    {
+        int writeX = x;
+        for (int i = 0; i < text.Length && writeX < _width; i++)
         {
-            char c = i < hud.Length ? hud[i] : ' ';
-            SetCell(i, y, c, _scheme.Hud);
+            SetCell(writeX, y, text[i], color);
+            writeX++;
         }
+
+        return writeX;
+    }
+
+    private void UpdateRates(int currentTick)
+    {
+        long nowTicks = _frameClock.ElapsedTicks;
+        if (_lastFrameTicks == 0L)
+        {
+            _lastFrameTicks = nowTicks;
+            _lastTick = currentTick;
+            return;
+        }
+
+        double deltaSeconds = (nowTicks - _lastFrameTicks) / (double)Stopwatch.Frequency;
+        if (deltaSeconds <= 0d) { return; }
+
+        _fps = (float)(1d / deltaSeconds);
+        int tickDelta = Math.Max(0, currentTick - _lastTick);
+        _tps = (float)(tickDelta / deltaSeconds);
+
+        _lastFrameTicks = nowTicks;
+        _lastTick = currentTick;
     }
 
     private void FlushDiffToConsole()

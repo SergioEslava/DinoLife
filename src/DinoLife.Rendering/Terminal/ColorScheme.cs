@@ -16,4 +16,8 @@ public sealed class ColorScheme
     public ConsoleColor Carnivore { get; set; } = ConsoleColor.Red;
     public ConsoleColor Plant { get; set; } = ConsoleColor.DarkGreen;
     public ConsoleColor Scavenger { get; set; } = ConsoleColor.Yellow;
+
+    public ConsoleColor HealthLow { get; set; } = ConsoleColor.Red;
+    public ConsoleColor HealthMedium { get; set; } = ConsoleColor.Yellow;
+    public ConsoleColor HealthHigh { get; set; } = ConsoleColor.Green;
 }

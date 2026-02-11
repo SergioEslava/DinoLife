@@ -20,4 +20,13 @@ public sealed class WorldSnapshot
 public readonly record struct SnapshotEntity(EntityType Type, Vector2 Position, bool IsAlive);
 public readonly record struct SnapshotCorpse(Vector2 Position);
 
-public readonly record struct SnapshotStats(int Herbivores, int Carnivores, int Plants, int Scavengers);
+public readonly record struct SnapshotStats(
+    int Herbivores,
+    int Carnivores,
+    int Plants,
+    int Scavengers,
+    float TotalEnergy,
+    float AverageLifespan,
+    int HealthLow,
+    int HealthMedium,
+    int HealthHigh);
