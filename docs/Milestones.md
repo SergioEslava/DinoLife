@@ -257,19 +257,19 @@ Add user controls, persistence, and parameter tuning for full interactivity.
 ### Deliverables
 
 #### 4.1 Input Handling
-- [ ] `InputHandler` class with key mapping
-- [ ] Non-blocking keyboard input
-- [ ] Command queue pattern
-- [ ] Key bindings:
-  - `Space`: Play/Pause
-  - `→`: Step one tick (when paused)
-  - `+/-`: Speed control (0.25x, 0.5x, 1x, 2x, 4x)
-  - `S`: Save state
-  - `L`: Load state
-  - `R`: Reset simulation
-  - `Q`: Quit
-  - `P`: Toggle performance overlay
-  - `H`: Show help
+- [x] `InputHandler` class with key mapping
+- [x] Non-blocking keyboard input
+- [x] Command queue pattern
+- [x] Key bindings:
+  - [x] `Space`: Play/Pause
+  - [x] `→`: Step one tick (when paused)
+  - [x] `+/-`: Speed control (0.25x, 0.5x, 1x, 2x, 4x)
+  - [x] `S`: Save state
+  - [x] `L`: Load state
+  - [x] `R`: Reset simulation
+  - [x] `Q`: Quit
+  - [x] `P`: Toggle performance overlay
+  - [x] `H`: Show help
 
 #### 4.2 Simulation Controls
 - [ ] Pause/Resume without state corruption

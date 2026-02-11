@@ -1,4 +1,5 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# 
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DinoLife.Core", "src\DinoLife.Core\DinoLife.Core.csproj", "{GUID1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DinoLife.Rendering", "src\DinoLife.Rendering\DinoLife.Rendering.csproj", "{GUID2}"
@@ -12,6 +13,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DinoLife.Rendering.Tests", "tests\DinoLife.Rendering.Tests\DinoLife.Rendering.Tests.csproj", "{GUID6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DinoLife.Benchmarks", "tests\DinoLife.Benchmarks\DinoLife.Benchmarks.csproj", "{GUID7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{7D8C05E5-AFBC-40C9-9E97-D58952195E0C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DinoLife.Persistence.Tests", "tests\DinoLife.Persistence.Tests\DinoLife.Persistence.Tests.csproj", "{2F9510C9-004D-49B9-99AD-5445A86C15C6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,5 +52,12 @@ Global
 		{GUID7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{GUID7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{GUID7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F9510C9-004D-49B9-99AD-5445A86C15C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F9510C9-004D-49B9-99AD-5445A86C15C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F9510C9-004D-49B9-99AD-5445A86C15C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F9510C9-004D-49B9-99AD-5445A86C15C6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{2F9510C9-004D-49B9-99AD-5445A86C15C6} = {7D8C05E5-AFBC-40C9-9E97-D58952195E0C}
 	EndGlobalSection
 EndGlobal
