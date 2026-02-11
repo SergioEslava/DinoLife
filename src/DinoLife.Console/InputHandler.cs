@@ -58,6 +58,9 @@ public sealed class InputHandler
             case ConsoleKey.L:
                 command = new InputCommand(InputCommandType.LoadState);
                 return true;
+            case ConsoleKey.B:
+                command = new InputCommand(InputCommandType.RefreshSaveBrowser);
+                return true;
             case ConsoleKey.R:
                 command = new InputCommand(InputCommandType.ResetSimulation);
                 return true;
@@ -103,6 +106,12 @@ public sealed class InputHandler
             case ConsoleKey.G:
                 command = new InputCommand(InputCommandType.ToggleGrid);
                 return true;
+            case ConsoleKey.J:
+                command = new InputCommand(InputCommandType.BrowsePreviousSave);
+                return true;
+            case ConsoleKey.K:
+                command = new InputCommand(InputCommandType.BrowseNextSave);
+                return true;
             case ConsoleKey.O:
                 command = new InputCommand(InputCommandType.TogglePerformanceOverlay);
                 return true;
@@ -135,5 +144,8 @@ public enum InputCommandType
     ToggleFollowSelected,
     SelectNextEntity,
     SelectPreviousEntity,
-    ToggleGrid
+    ToggleGrid,
+    BrowsePreviousSave,
+    BrowseNextSave,
+    RefreshSaveBrowser
 }

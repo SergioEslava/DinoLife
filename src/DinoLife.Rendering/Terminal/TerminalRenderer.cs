@@ -452,7 +452,8 @@ public sealed class TerminalRenderer : IRenderer
         [
             "HELP [H toggle]",
             "Space: Play/Pause | Right: Step (paused) | +/-: Speed 0.25x..4x",
-            "S: Save | L: Load | R: Reset | Q/Esc: Quit | P: Perf Overlay",
+            "S: Save | L: Load selected | J/K: Prev/Next save | B: Refresh saves",
+            "R: Reset | Q/Esc: Quit | P: Perf Overlay | Autosave every N ticks",
             "Camera: A/W/D + Arrows + Home | Follow: F | Select: Tab/[ ]",
             "Grid: G"
         ];
