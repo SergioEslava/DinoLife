@@ -213,11 +213,11 @@ Create terminal-based visualization with real-time statistics and debugging tool
 - [x] Color-coded health indicators
 
 #### 3.5 Performance Overlay
-- [ ] Real-time FPS counter
-- [ ] Tick time graph (last 60 ticks)
-- [ ] Memory usage
-- [ ] Entity count
-- [ ] Toggle on/off with keyboard
+- [x] Real-time FPS counter
+- [x] Tick time graph (last 60 ticks)
+- [x] Memory usage
+- [x] Entity count
+- [x] Toggle on/off with keyboard
 
 #### 3.6 Camera Controls
 - [ ] Pan (arrow keys or WASD)

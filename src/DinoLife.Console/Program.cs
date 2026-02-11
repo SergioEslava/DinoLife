@@ -18,8 +18,10 @@ public class Program
     private bool _isExiting;
     private bool _tickOnceRequested;
     private SimulationEngine? _simulation;
+    private TerminalRenderer? _renderer;
     private bool _showGrid;
     private bool _turboMode;
+    private bool _showPerformanceOverlay;
 
     /// <summary>
     /// Application entry point.
@@ -41,8 +43,11 @@ public class Program
         _simulation = FactorySimulation.GenerateDefaultSimulation(world);
         world.DebugDrawGrid = _showGrid;
 
-        IRenderer renderer = new TerminalRenderer();
-        renderer.Initialize();
+        _renderer = new TerminalRenderer
+        {
+            ShowPerformanceOverlay = _showPerformanceOverlay
+        };
+        _renderer.Initialize();
 
         InputHandler input = new InputHandler();
 
@@ -73,7 +78,8 @@ public class Program
                 }
 
                 WorldSnapshot snapshot = WorldSnapshotBuilder.Build(world);
-                renderer.Render(snapshot);
+                _renderer.ShowPerformanceOverlay = _showPerformanceOverlay;
+                _renderer.Render(snapshot);
 
                 if (!_turboMode)
                 {
@@ -83,7 +89,7 @@ public class Program
         }
         finally
         {
-            renderer.Shutdown();
+            _renderer?.Shutdown();
         }
     }
 
@@ -337,5 +343,17 @@ public class Program
     public void ToggleTurbo()
     {
         _turboMode = !_turboMode;
+    }
+
+    /// <summary>
+    /// Toggle performance overlay rendering.
+    /// </summary>
+    public void TogglePerformanceOverlay()
+    {
+        _showPerformanceOverlay = !_showPerformanceOverlay;
+        if (_renderer is not null)
+        {
+            _renderer.ShowPerformanceOverlay = _showPerformanceOverlay;
+        }
     }
 }

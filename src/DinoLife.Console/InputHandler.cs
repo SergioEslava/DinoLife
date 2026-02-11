@@ -38,6 +38,10 @@ public class InputHandler
             case ConsoleKey.F:
                 program.ToggleTurbo();
                 break;
+
+            case ConsoleKey.O:
+                program.TogglePerformanceOverlay();
+                break;
         }
     }
 }
