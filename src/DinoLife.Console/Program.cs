@@ -15,7 +15,8 @@ namespace DinoLife.Cli;
 /// </summary>
 public sealed class Program
 {
-    private const string SavePath = "savegame.json";
+    private const string SaveDirectory = "saves";
+    private const int AutosaveEveryTicks = 300;
     private static readonly float[] SpeedLevels = [0.25f, 0.5f, 1f, 2f, 4f];
 
     private bool _isExiting;
@@ -32,6 +33,11 @@ public sealed class Program
     private double _tickAccumulator;
     private long _lastLoopTimestamp;
     private string? _statusMessage;
+    private readonly IWorldSerializer _serializer = new JsonWorldSerializer();
+    private readonly SaveBrowser _saveBrowser = new SaveBrowser(new JsonWorldSerializer());
+    private IReadOnlyList<SaveMetadata> _saves = Array.Empty<SaveMetadata>();
+    private int _selectedSaveIndex = -1;
+    private int _lastAutosaveTick;
 
     /// <summary>
     /// Application entry point.
@@ -44,6 +50,7 @@ public sealed class Program
     private void Run()
     {
         ResetSimulation();
+        RefreshSaveBrowser();
 
         _renderer = new TerminalRenderer
         {
@@ -105,6 +112,9 @@ public sealed class Program
                 case InputCommandType.LoadState:
                     LoadState();
                     break;
+                case InputCommandType.RefreshSaveBrowser:
+                    RefreshSaveBrowser();
+                    break;
                 case InputCommandType.ResetSimulation:
                     ResetSimulation();
                     break;
@@ -144,6 +154,12 @@ public sealed class Program
                 case InputCommandType.ToggleGrid:
                     ToggleGrid();
                     break;
+                case InputCommandType.BrowsePreviousSave:
+                    SelectPreviousSave();
+                    break;
+                case InputCommandType.BrowseNextSave:
+                    SelectNextSave();
+                    break;
             }
         }
     }
@@ -176,6 +192,7 @@ public sealed class Program
             _simulation.TickOnce();
             _tickAccumulator -= SimulationEngine.TickTime;
             ticks++;
+            TryAutosave();
         }
     }
 
@@ -258,13 +275,32 @@ public sealed class Program
     private void SaveState()
     {
         if (_world is null) { return; }
-        WorldStatePersistence.Save(SavePath, _world);
-        SetStatus($"Saved: {SavePath}");
+        string path = BuildManualSavePath();
+        _serializer.Save(path, _world);
+        RefreshSaveBrowser(selectPath: path);
+        SetStatus($"Saved: {Path.GetFileName(path)}");
     }
 
     private void LoadState()
     {
-        if (!WorldStatePersistence.TryLoad(SavePath, out Planet loaded, out string error))
+        if (_saves.Count == 0)
+        {
+            RefreshSaveBrowser();
+        }
+
+        if (_saves.Count == 0)
+        {
+            SetStatus("No saves available");
+            return;
+        }
+
+        if (_selectedSaveIndex < 0 || _selectedSaveIndex >= _saves.Count)
+        {
+            _selectedSaveIndex = 0;
+        }
+
+        SaveMetadata selected = _saves[_selectedSaveIndex];
+        if (!_serializer.TryLoad(selected.Path, out Planet loaded, out string error))
         {
             SetStatus(error);
             return;
@@ -275,7 +311,8 @@ public sealed class Program
         _showGrid = _world.DebugDrawGrid;
         _tickAccumulator = 0d;
         _lastLoopTimestamp = Stopwatch.GetTimestamp();
-        SetStatus($"Loaded: {SavePath}");
+        _lastAutosaveTick = _world.Tick;
+        SetStatus($"Loaded: {selected.Name}");
     }
 
     private void ResetSimulation()
@@ -290,6 +327,7 @@ public sealed class Program
         _simulation = FactorySimulation.GenerateDefaultSimulation(world);
         _tickAccumulator = 0d;
         _lastLoopTimestamp = Stopwatch.GetTimestamp();
+        _lastAutosaveTick = world.Tick;
         _selectedEntitySlot = -1;
         _followEntity = false;
         SetStatus("Simulation reset");
@@ -364,8 +402,95 @@ public sealed class Program
     {
         string speed = $"Speed:{SpeedLevels[_speedIndex]:0.##}x";
         string baseText = _simulation?.IsStopped == true ? $"{speed} Paused" : speed;
+        string saveInfo = _saves.Count > 0 && _selectedSaveIndex >= 0 && _selectedSaveIndex < _saves.Count
+            ? $"Save:{_selectedSaveIndex + 1}/{_saves.Count} {_saves[_selectedSaveIndex].Name}"
+            : "Save:None";
+        baseText = $"{baseText} {saveInfo}";
         if (string.IsNullOrWhiteSpace(_statusMessage)) { return baseText; }
         return $"{baseText} | {_statusMessage}";
+    }
+
+    private void TryAutosave()
+    {
+        if (_world is null) { return; }
+        if (_world.Tick - _lastAutosaveTick < AutosaveEveryTicks) { return; }
+
+        string path = BuildAutosavePath(_world.Tick);
+        _serializer.Save(path, _world);
+        _lastAutosaveTick = _world.Tick;
+        RefreshSaveBrowser(selectPath: path);
+        SetStatus($"Autosaved: {Path.GetFileName(path)}");
+    }
+
+    private void RefreshSaveBrowser(string? selectPath = null)
+    {
+        _saves = _saveBrowser.ListSaves(SaveDirectory);
+        if (_saves.Count == 0)
+        {
+            _selectedSaveIndex = -1;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(selectPath))
+        {
+            for (int i = 0; i < _saves.Count; i++)
+            {
+                if (string.Equals(_saves[i].Path, selectPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    _selectedSaveIndex = i;
+                    return;
+                }
+            }
+        }
+
+        if (_selectedSaveIndex < 0 || _selectedSaveIndex >= _saves.Count)
+        {
+            _selectedSaveIndex = 0;
+        }
+    }
+
+    private void SelectNextSave()
+    {
+        if (_saves.Count == 0)
+        {
+            RefreshSaveBrowser();
+            if (_saves.Count == 0)
+            {
+                SetStatus("No saves available");
+                return;
+            }
+        }
+
+        _selectedSaveIndex = (_selectedSaveIndex + 1 + _saves.Count) % _saves.Count;
+        SetStatus($"Selected save: {_saves[_selectedSaveIndex].Name}");
+    }
+
+    private void SelectPreviousSave()
+    {
+        if (_saves.Count == 0)
+        {
+            RefreshSaveBrowser();
+            if (_saves.Count == 0)
+            {
+                SetStatus("No saves available");
+                return;
+            }
+        }
+
+        _selectedSaveIndex = (_selectedSaveIndex - 1 + _saves.Count) % _saves.Count;
+        SetStatus($"Selected save: {_saves[_selectedSaveIndex].Name}");
+    }
+
+    private static string BuildManualSavePath()
+    {
+        string timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss");
+        return Path.Combine(SaveDirectory, $"manual-{timestamp}.json");
+    }
+
+    private static string BuildAutosavePath(int tick)
+    {
+        string timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss");
+        return Path.Combine(SaveDirectory, $"auto-{tick:D8}-{timestamp}.json");
     }
 
     private static void SeedWorld(Planet world)

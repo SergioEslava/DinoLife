@@ -279,13 +279,13 @@ Add user controls, persistence, and parameter tuning for full interactivity.
 - [x] Frame advance visualization
 
 #### 4.3 Persistence System
-- [ ] `IWorldSerializer` interface
-- [ ] `JsonWorldSerializer` implementation
-- [ ] Save format v1.0 schema
-- [ ] Incremental saves (autosave every N ticks)
-- [ ] Save browser (list/load from saves/)
-- [ ] Versioning support
-- [ ] Corruption detection
+- [x] `IWorldSerializer` interface
+- [x] `JsonWorldSerializer` implementation
+- [x] Save format v1.0 schema
+- [x] Incremental saves (autosave every N ticks)
+- [x] Save browser (list/load from saves/)
+- [x] Versioning support
+- [x] Corruption detection
 
 #### 4.4 Parameter Tuning UI
 - [ ] In-game menu for parameter editing
