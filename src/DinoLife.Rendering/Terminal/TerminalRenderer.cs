@@ -1,4 +1,5 @@
 using System;
+using DinoLife.Core.Entities;
 namespace DinoLife.Rendering.Terminal;
 
 /// <summary>
@@ -89,10 +90,20 @@ public sealed class TerminalRenderer : IRenderer
 
     private void DrawEntities(WorldSnapshot snapshot)
     {
+        DrawEntityLayer(snapshot, EntityType.Plant);
+        DrawEntityLayer(snapshot, EntityType.Herbivore);
+        DrawEntityLayer(snapshot, EntityType.Scavenger);
+        DrawEntityLayer(snapshot, EntityType.Carnivore);
+    }
+
+    private void DrawEntityLayer(WorldSnapshot snapshot, EntityType layerType)
+    {
         for (int i = 0; i < snapshot.Entities.Length; i++)
         {
             SnapshotEntity entity = snapshot.Entities[i];
             if (!entity.IsAlive) { continue; }
+            if (entity.Type != layerType) { continue; }
+            if (!IsInsideWorld(entity.Position, snapshot.WorldSize)) { continue; }
 
             int x = ToScreenX(entity.Position.X, snapshot.WorldSize.X);
             int y = ToScreenY(entity.Position.Y, snapshot.WorldSize.Y);
@@ -107,10 +118,18 @@ public sealed class TerminalRenderer : IRenderer
         for (int i = 0; i < snapshot.Corpses.Length; i++)
         {
             SnapshotCorpse corpse = snapshot.Corpses[i];
+            if (!IsInsideWorld(corpse.Position, snapshot.WorldSize)) { continue; }
             int x = ToScreenX(corpse.Position.X, snapshot.WorldSize.X);
             int y = ToScreenY(corpse.Position.Y, snapshot.WorldSize.Y);
             SetCell(x, y, 'X', _scheme.Corpse);
         }
+    }
+
+    private static bool IsInsideWorld(DinoLife.Core.Utils.Vector2 position, DinoLife.Core.Utils.Vector2 worldSize)
+    {
+        if (worldSize.X <= 0f || worldSize.Y <= 0f) { return false; }
+        return position.X >= 0f && position.X <= worldSize.X
+            && position.Y >= 0f && position.Y <= worldSize.Y;
     }
 
     private void DrawGrid(WorldSnapshot snapshot)

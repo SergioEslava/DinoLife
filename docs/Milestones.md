@@ -203,8 +203,8 @@ Create terminal-based visualization with real-time statistics and debugging tool
   - Plant: `*` (Light Green)
   - Scavenger: `S` (Yellow)
   - [x] Position scaling (world -> screen coords)
-- [ ] Culling for off-screen entities
-- [ ] Layering (plants → herbivores → carnivores)
+- [x] Culling for off-screen entities
+- [x] Layering (plants → herbivores → carnivores)
 
 #### 3.4 HUD Display
 - [ ] Top bar: Tick count, FPS, TPS
