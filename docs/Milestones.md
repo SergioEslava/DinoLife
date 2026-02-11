@@ -220,10 +220,10 @@ Create terminal-based visualization with real-time statistics and debugging tool
 - [x] Toggle on/off with keyboard
 
 #### 3.6 Camera Controls
-- [ ] Pan (arrow keys or WASD)
-- [ ] Zoom (+ / -)
-- [ ] Reset view (Home key)
-- [ ] Follow entity mode (F key + select)
+- [x] Pan (arrow keys or WASD)
+- [x] Zoom (+ / -)
+- [x] Reset view (Home key)
+- [x] Follow entity mode (F key + select)
 
 ### Definition of Done
 - ✅ 500+ entities render smoothly (>30 FPS display)
