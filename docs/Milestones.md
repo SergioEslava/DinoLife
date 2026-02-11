@@ -272,11 +272,11 @@ Add user controls, persistence, and parameter tuning for full interactivity.
   - [x] `H`: Show help
 
 #### 4.2 Simulation Controls
-- [ ] Pause/Resume without state corruption
-- [ ] Single-step mode for debugging
-- [ ] Speed multiplier (affects tick rate)
-- [ ] Reset to initial state
-- [ ] Frame advance visualization
+- [x] Pause/Resume without state corruption
+- [x] Single-step mode for debugging
+- [x] Speed multiplier (affects tick rate)
+- [x] Reset to initial state
+- [x] Frame advance visualization
 
 #### 4.3 Persistence System
 - [ ] `IWorldSerializer` interface

@@ -132,6 +132,45 @@ public class SimulationEngineTests
 
         calls.Should().Equal(1,2,3,1,2,3);
     }
+
+    [Fact]
+    public void SimulationEngine_Stop_ShouldPreventStepFromAdvancingTick_AndCallingSystems()
+    {
+        var world = new Planet();
+        var clock = new FakeClock();
+        int callCount = 0;
+        var systems = new ISystem[]
+        {
+            new TestSystem((_, _) => callCount++)
+        };
+        var engine = new SimulationEngine(world, clock, systems);
+
+        engine.Stop();
+        clock.Advance(1.0);
+        engine.Step();
+
+        world.Tick.Should().Be(0);
+        callCount.Should().Be(0);
+    }
+
+    [Fact]
+    public void SimulationEngine_Resume_ShouldNotCatchUpElapsedPausedTime()
+    {
+        var world = new Planet();
+        var clock = new FakeClock();
+        var engine = new SimulationEngine(world, clock, Array.Empty<ISystem>());
+
+        engine.Stop();
+        clock.Advance(10.0); // Time passes while paused
+        engine.Resume();
+        engine.Step(); // Same clock instant as resume baseline
+
+        world.Tick.Should().Be(0);
+
+        clock.Advance(1.0);
+        engine.Step();
+        world.Tick.Should().Be(60);
+    }
 }
 
 // =======================
