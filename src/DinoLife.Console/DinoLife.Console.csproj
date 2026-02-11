@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DinoLife.Core\DinoLife.Core.csproj" />
+    <ProjectReference Include="..\DinoLife.Persistence\DinoLife.Persistence.csproj" />
     <ProjectReference Include="..\DinoLife.Rendering\DinoLife.Rendering.csproj" />
   </ItemGroup>
 

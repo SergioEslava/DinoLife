@@ -12,6 +12,7 @@ public sealed class TerminalRenderer : IRenderer
 {
     private const int TopHudHeight = 1;
     private const int OverlayHeight = 8;
+    private const int HelpOverlayHeight = 8;
     private const int TickHistorySize = 60;
     private const float MinZoom = 0.25f;
     private const float MaxZoom = 4.0f;
@@ -50,6 +51,8 @@ public sealed class TerminalRenderer : IRenderer
     }
 
     public bool ShowPerformanceOverlay { get; set; }
+    public bool ShowHelpOverlay { get; set; }
+    public string? StatusText { get; set; }
 
     public Guid? SelectedEntityId { get; set; }
 
@@ -84,6 +87,7 @@ public sealed class TerminalRenderer : IRenderer
         DrawCorpses(snapshot);
         DrawEntities(snapshot);
         DrawPerformanceOverlay(snapshot);
+        DrawHelpOverlay();
 
         FlushDiffToConsole();
         SwapBuffers();
@@ -160,7 +164,9 @@ public sealed class TerminalRenderer : IRenderer
     private void UpdateViewport()
     {
         _viewportTop = TopHudHeight;
-        int reservedBottom = ShowPerformanceOverlay ? OverlayHeight : 0;
+        int reservedBottom = 0;
+        if (ShowPerformanceOverlay) { reservedBottom += OverlayHeight; }
+        if (ShowHelpOverlay) { reservedBottom += HelpOverlayHeight; }
         _viewportBottomExclusive = Math.Max(_viewportTop + 1, _height - reservedBottom);
         _drawableHeight = Math.Max(1, _viewportBottomExclusive - _viewportTop);
     }
@@ -335,6 +341,7 @@ public sealed class TerminalRenderer : IRenderer
         x = WriteText(x, y, $"L:{snapshot.Stats.HealthLow} ", _scheme.HealthLow);
         x = WriteText(x, y, $"M:{snapshot.Stats.HealthMedium} ", _scheme.HealthMedium);
         x = WriteText(x, y, $"H:{snapshot.Stats.HealthHigh} ", _scheme.HealthHigh);
+        x = WriteText(x, y, $"| {StatusText ?? string.Empty} ", _scheme.Hud);
 
         if (TryGetSelectedEntity(snapshot, out SnapshotEntity selected))
         {
@@ -422,6 +429,38 @@ public sealed class TerminalRenderer : IRenderer
         if (axisY >= graphTop)
         {
             WriteText(0, axisY, $"0ms/{maxTickMs:0.0}ms", _scheme.Hud);
+        }
+    }
+
+    private void DrawHelpOverlay()
+    {
+        if (!ShowHelpOverlay) { return; }
+
+        int panelBottomExclusive = _height - (ShowPerformanceOverlay ? OverlayHeight : 0);
+        int panelTop = Math.Max(_viewportBottomExclusive, panelBottomExclusive - HelpOverlayHeight);
+        if (panelTop >= panelBottomExclusive) { return; }
+
+        for (int y = panelTop; y < panelBottomExclusive; y++)
+        {
+            for (int x = 0; x < _width; x++)
+            {
+                SetCell(x, y, ' ', _scheme.Hud);
+            }
+        }
+
+        string[] lines =
+        [
+            "HELP [H toggle]",
+            "Space: Play/Pause | Right: Step (paused) | +/-: Speed 0.25x..4x",
+            "S: Save | L: Load | R: Reset | Q/Esc: Quit | P: Perf Overlay",
+            "Camera: A/W/D + Arrows + Home | Follow: F | Select: Tab/[ ]",
+            "Grid: G"
+        ];
+
+        int yLine = panelTop;
+        for (int i = 0; i < lines.Length && yLine < panelBottomExclusive; i++, yLine++)
+        {
+            WriteText(0, yLine, lines[i], _scheme.Hud);
         }
     }
 

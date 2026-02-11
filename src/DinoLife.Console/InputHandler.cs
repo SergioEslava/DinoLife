@@ -1,97 +1,139 @@
 using System;
+using System.Collections.Generic;
 
 namespace DinoLife.Cli;
 
 /// <summary>
-/// Reads console input and dispatches actions to the program.
+/// Reads non-blocking keyboard input and enqueues semantic commands.
 /// </summary>
-public class InputHandler
+public sealed class InputHandler
 {
-    /// <summary>
-    /// Poll for a single key press and invoke the corresponding action.
-    /// </summary>
-    /// <param name="program">Program instance that owns the simulation controls.</param>
-    public void Poll(Program program)
+    private readonly Queue<InputCommand> _queue = new();
+
+    public void Poll()
     {
-        if (!Console.KeyAvailable) { return; }
-
-        ConsoleKey key = Console.ReadKey(true).Key;
-
-        switch (key)
+        while (Console.KeyAvailable)
         {
-            case ConsoleKey.Escape:
-                program.Exit();
-                break;
-
-            case ConsoleKey.Spacebar:
-                program.TogglePause();
-                break;
-
-            case ConsoleKey.T:
-                program.RequestTick();
-                break;
-
-            case ConsoleKey.G:
-                program.ToggleGrid();
-                break;
-
-            case ConsoleKey.LeftArrow:
-            case ConsoleKey.A:
-                program.PanLeft();
-                break;
-
-            case ConsoleKey.RightArrow:
-            case ConsoleKey.D:
-                program.PanRight();
-                break;
-
-            case ConsoleKey.UpArrow:
-            case ConsoleKey.W:
-                program.PanUp();
-                break;
-
-            case ConsoleKey.DownArrow:
-            case ConsoleKey.S:
-                program.PanDown();
-                break;
-
-            case ConsoleKey.Add:
-            case ConsoleKey.OemPlus:
-                program.ZoomIn();
-                break;
-
-            case ConsoleKey.Subtract:
-            case ConsoleKey.OemMinus:
-                program.ZoomOut();
-                break;
-
-            case ConsoleKey.Home:
-                program.ResetCamera();
-                break;
-
-            case ConsoleKey.F:
-                program.ToggleFollowSelected();
-                break;
-
-            case ConsoleKey.Tab:
-                program.SelectNextEntity();
-                break;
-
-            case ConsoleKey.Oem4:
-                program.SelectPreviousEntity();
-                break;
-
-            case ConsoleKey.Oem6:
-                program.SelectNextEntity();
-                break;
-
-            case ConsoleKey.U:
-                program.ToggleTurbo();
-                break;
-
-            case ConsoleKey.O:
-                program.TogglePerformanceOverlay();
-                break;
+            ConsoleKeyInfo key = Console.ReadKey(intercept: true);
+            if (TryMap(key, out InputCommand command))
+            {
+                _queue.Enqueue(command);
+            }
         }
     }
+
+    public bool TryDequeue(out InputCommand command)
+    {
+        if (_queue.Count == 0)
+        {
+            command = default;
+            return false;
+        }
+
+        command = _queue.Dequeue();
+        return true;
+    }
+
+    private static bool TryMap(ConsoleKeyInfo key, out InputCommand command)
+    {
+        switch (key.Key)
+        {
+            case ConsoleKey.Spacebar:
+                command = new InputCommand(InputCommandType.TogglePause);
+                return true;
+            case ConsoleKey.RightArrow:
+                command = new InputCommand(InputCommandType.StepOnce);
+                return true;
+            case ConsoleKey.Add:
+            case ConsoleKey.OemPlus:
+                command = new InputCommand(InputCommandType.SpeedUp);
+                return true;
+            case ConsoleKey.Subtract:
+            case ConsoleKey.OemMinus:
+                command = new InputCommand(InputCommandType.SpeedDown);
+                return true;
+            case ConsoleKey.S:
+                command = new InputCommand(InputCommandType.SaveState);
+                return true;
+            case ConsoleKey.L:
+                command = new InputCommand(InputCommandType.LoadState);
+                return true;
+            case ConsoleKey.R:
+                command = new InputCommand(InputCommandType.ResetSimulation);
+                return true;
+            case ConsoleKey.Q:
+            case ConsoleKey.Escape:
+                command = new InputCommand(InputCommandType.Quit);
+                return true;
+            case ConsoleKey.P:
+                command = new InputCommand(InputCommandType.TogglePerformanceOverlay);
+                return true;
+            case ConsoleKey.H:
+                command = new InputCommand(InputCommandType.ToggleHelp);
+                return true;
+
+            // Camera controls still available from milestone 3.6
+            case ConsoleKey.LeftArrow:
+            case ConsoleKey.A:
+                command = new InputCommand(InputCommandType.PanLeft);
+                return true;
+            case ConsoleKey.UpArrow:
+            case ConsoleKey.W:
+                command = new InputCommand(InputCommandType.PanUp);
+                return true;
+            case ConsoleKey.DownArrow:
+                command = new InputCommand(InputCommandType.PanDown);
+                return true;
+            case ConsoleKey.D:
+                command = new InputCommand(InputCommandType.PanRight);
+                return true;
+            case ConsoleKey.Home:
+                command = new InputCommand(InputCommandType.ResetCamera);
+                return true;
+            case ConsoleKey.F:
+                command = new InputCommand(InputCommandType.ToggleFollowSelected);
+                return true;
+            case ConsoleKey.Tab:
+            case ConsoleKey.Oem6:
+                command = new InputCommand(InputCommandType.SelectNextEntity);
+                return true;
+            case ConsoleKey.Oem4:
+                command = new InputCommand(InputCommandType.SelectPreviousEntity);
+                return true;
+            case ConsoleKey.G:
+                command = new InputCommand(InputCommandType.ToggleGrid);
+                return true;
+            case ConsoleKey.O:
+                command = new InputCommand(InputCommandType.TogglePerformanceOverlay);
+                return true;
+            default:
+                command = default;
+                return false;
+        }
+    }
+}
+
+public readonly record struct InputCommand(InputCommandType Type);
+
+public enum InputCommandType
+{
+    TogglePause,
+    StepOnce,
+    SpeedUp,
+    SpeedDown,
+    SaveState,
+    LoadState,
+    ResetSimulation,
+    Quit,
+    TogglePerformanceOverlay,
+    ToggleHelp,
+    PanLeft,
+    PanRight,
+    PanUp,
+    PanDown,
+    ResetCamera,
+    ToggleFollowSelected,
+    SelectNextEntity,
+    SelectPreviousEntity,
+    ToggleGrid
 }
