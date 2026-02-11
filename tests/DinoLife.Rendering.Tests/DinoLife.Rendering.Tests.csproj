@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\DinoLife.Core\DinoLife.Core.csproj" />
+    <ProjectReference Include="..\..\src\DinoLife.Rendering\DinoLife.Rendering.csproj" />
   </ItemGroup>
 
 </Project>

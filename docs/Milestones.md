@@ -184,20 +184,20 @@ Create terminal-based visualization with real-time statistics and debugging tool
 ### Deliverables
 
 #### 3.1 Renderer Architecture
-  - [x] `IRenderer` interface
-  - [x] `RenderData` / `WorldSnapshot` struct (read-only view)
-  - [x] `TerminalRenderer` skeleton
-  - [ ] Color scheme configuration
-  - [x] Entity symbol mapping
+- [x] `IRenderer` interface
+- [x] `RenderData` / `WorldSnapshot` struct (read-only view)
+- [x] `TerminalRenderer` skeleton
+- [x] Color scheme configuration
+- [x] Entity symbol mapping
 
 #### 3.2 Double Buffering
-- [ ] `DoubleBuffer` class (char[,] arrays)
+- [x] `DoubleBuffer` class (char[,] arrays)
   - [x] Buffer swap logic
   - [x] Diff-based console updates (only changed cells)
-- [ ] Flicker testing
+- [x] Flicker testing
 
 #### 3.3 Entity Rendering
-- [ ] Symbol per entity type:
+- [x] Symbol per entity type:
   - Herbivore: `H` (Green)
   - Carnivore: `C` (Red)
   - Plant: `*` (Light Green)
