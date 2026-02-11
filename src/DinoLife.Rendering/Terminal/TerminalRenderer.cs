@@ -6,10 +6,7 @@ namespace DinoLife.Rendering.Terminal;
 /// </summary>
 public sealed class TerminalRenderer : IRenderer
 {
-    private char[]? _backBuffer;
-    private char[]? _frontBuffer;
-    private ConsoleColor[]? _backColors;
-    private ConsoleColor[]? _frontColors;
+    private DoubleBuffer? _doubleBuffer;
     private int _width;
     private int _height;
     private int _drawableHeight;
@@ -64,7 +61,7 @@ public sealed class TerminalRenderer : IRenderer
         int width = Math.Max(20, Console.WindowWidth);
         int height = Math.Max(5, Console.WindowHeight);
 
-        if (_backBuffer is not null && _width == width && _height == height)
+        if (_doubleBuffer is not null && _width == width && _height == height)
         {
             return;
         }
@@ -73,27 +70,21 @@ public sealed class TerminalRenderer : IRenderer
         _height = height;
         _drawableHeight = Math.Max(1, _height - 1); // Reserve last line for HUD
 
-        int size = _width * _height;
-        _backBuffer = new char[size];
-        _frontBuffer = new char[size];
-        _backColors = new ConsoleColor[size];
-        _frontColors = new ConsoleColor[size];
+        if (_doubleBuffer is null)
+        {
+            _doubleBuffer = new DoubleBuffer(_width, _height, _scheme.Default);
+        }
+        else
+        {
+            _doubleBuffer.Resize(_width, _height);
+        }
 
-        Array.Fill(_backBuffer, ' ');
-        Array.Fill(_frontBuffer, ' ');
-        Array.Fill(_backColors, _scheme.Default);
-        Array.Fill(_frontColors, _scheme.Default);
         Console.Clear();
     }
 
     private void ClearBackBuffer()
     {
-        if (_backBuffer is null) { return; }
-        Array.Fill(_backBuffer, ' ');
-        if (_backColors is not null)
-        {
-            Array.Fill(_backColors, _scheme.Default);
-        }
+        _doubleBuffer?.ClearBack();
     }
 
     private void DrawEntities(WorldSnapshot snapshot)
@@ -179,42 +170,24 @@ public sealed class TerminalRenderer : IRenderer
 
     private void FlushDiffToConsole()
     {
-        if (_backBuffer is null || _frontBuffer is null || _backColors is null || _frontColors is null) { return; }
+        if (_doubleBuffer is null) { return; }
 
-        for (int y = 0; y < _height; y++)
+        foreach (CellDiff diff in _doubleBuffer.GetDiff())
         {
-            int rowStart = y * _width;
-
-            for (int x = 0; x < _width; x++)
-            {
-                int idx = rowStart + x;
-                if (_backBuffer[idx] == _frontBuffer[idx] && _backColors[idx] == _frontColors[idx])
-                {
-                    continue;
-                }
-
-                Console.SetCursorPosition(x, y);
-                Console.ForegroundColor = _backColors[idx];
-                Console.Write(_backBuffer[idx]);
-            }
+            Console.SetCursorPosition(diff.X, diff.Y);
+            Console.ForegroundColor = diff.Color;
+            Console.Write(diff.Character);
         }
     }
 
     private void SwapBuffers()
     {
-        if (_backBuffer is null || _frontBuffer is null || _backColors is null || _frontColors is null) { return; }
-        (_frontBuffer, _backBuffer) = (_backBuffer, _frontBuffer);
-        (_frontColors, _backColors) = (_backColors, _frontColors);
+        _doubleBuffer?.Swap();
     }
 
     private void SetCell(int x, int y, char c, ConsoleColor color)
     {
-        if (_backBuffer is null || _backColors is null) { return; }
-        if (x < 0 || x >= _width) { return; }
-        if (y < 0 || y >= _height) { return; }
-        int idx = (y * _width) + x;
-        _backBuffer[idx] = c;
-        _backColors[idx] = color;
+        _doubleBuffer?.SetBackCell(x, y, c, color);
     }
 
     private int ToScreenX(float x, float worldWidth)
