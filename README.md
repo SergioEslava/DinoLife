@@ -1,15 +1,17 @@
-# DinoLife v1.0 Documentation
+# DinoLife v1.0
 
-> Emergent life simulation system in C# .NET8
+Emergent life simulation system in C# (.NET 8) with terminal rendering.
 
 ## Overview
 
-DinoLife is a terminal-based life simulation featuring 4 entity types that create emergent ecosystems through simple interaction rules.
+DinoLife simulates ecosystems with 4 entity types and real-time interaction rules. It supports:
 
-**Version:** 1.0.0  
-**Target Platform:** Desktop (.NET8)  
-**Rendering:** Terminal (Console)  
-**Architecture:** Data-Oriented Design (Hybrid)
+- Legacy terminal renderer and TUI renderer (`--renderer=legacy|tui`)
+- Save/load state
+- Performance overlay
+- In-game help overlay (`H`)
+- In-game parameter tuning with live updates, presets, and import/export
+- JSON configuration files with schema validation and hot-reload
 
 ## Quick Navigation
 
@@ -37,79 +39,80 @@ DinoLife is a terminal-based life simulation featuring 4 entity types that creat
 | Tick Rate | 60 updates/second |
 | Target Entities | 5000 simultaneous |
 | Persistence | JSON serialization |
-| Rendering | Terminal (Console direct) |
+| Rendering | Terminal (legacy + TUI) |
 
 ## Entity Types
 
-1. **Herbivore** - Grazes plants, reproduces, prey
-2. **Carnivore** - Hunts herbivores, apex predator
-3. **Plant** - Energy source, grows over time
-4. **Scavenger** - Consumes corpses, cleanup role
+1. Herbivore: Eats plants, flees carnivores
+2. Carnivore: Hunts herbivores (and scavengers when very hungry)
+3. Plant: Regrows and respawns after being consumed
+4. Scavenger: Consumes corpses and avoids carnivores
 
-## Key Features (v1.0)
-
-- [x] Real-time simulation at 60 TPS
-- [ ] 4 entity types with emergent behavior
-- [ ] Terminal visualization with stats HUD
-- [ ] Play/Pause/Speed controls
-- [ ] Save/Load simulation state
-- [ ] Parameter tuning interface
-- [ ] Performance metrics overlay
-
-## Status
-
-**Current Phase:** Milestone 1: Core Architecture & Foundation
-**Next Milestone:** Milestone 2: Entity Implementation
-
----
-
-## Build Instructions
-
-1. **Clone the repository:**
-
-```bash
-git clone https://github.com/SergioEslava/DinoLife.git
-cd DinoLife
-```
-
-2. **Restore NuGet packages:**
+## Build
 
 ```bash
 dotnet restore
-```
-
-3. **Build the solution in Release mode:**
-
-```bash
 dotnet build -c Release
 ```
 
-## Running Tests:
-All unit tests use xUnit and FluentAssertions:
+## Run
 
-### Run all tests in Release mode
+### Legacy renderer
+
+```bash
+dotnet run --project src/DinoLife.Console -- --renderer=legacy
+```
+
+### TUI renderer
+
+```bash
+dotnet run --project src/DinoLife.Console -- --renderer=tui
+```
+
+## Main Controls
+
+- `Space`: Play/Pause
+- `RightArrow`: Step one tick (paused)
+- `+/-`: Simulation speed
+- `W/A/S/D` or arrows: Camera pan
+- `Home`: Reset camera
+- `Tab` / `[` / `]`: Entity selection
+- `F`: Follow selected entity
+- `G`: Toggle grid
+- `P` or `O`: Performance panel
+- `H`: Help screen
+- `M`: Command menu (TUI)
+- `S`: Save
+- `L`: Load selected save
+- `J/K`: Previous/next save in browser
+- `R`: Reset simulation
+- `Q` / `Esc`: Quit
+
+## Parameter Tuning (TUI)
+
+In `M` menu, open `Parameter tuning...` to:
+
+- Edit movement/metabolism/reproduction/detection/growth values live
+- Apply presets: `Balanced`, `Chaotic`, `Stable`
+- Export tuning profiles to `tuning/*.json`
+- Import latest tuning profile from `tuning/`
+
+## Configuration Files
+
+- `appsettings.json`: global app config
+- `world-config.json`: world seed, initial populations, tuning profile
+- `appsettings.schema.json` and `world-config.schema.json`: validation schemas
+
+Hot-reload is enabled by default (`hotReloadEnabled: true` in `appsettings.json`).
+
+## Tests
 
 ```bash
 dotnet test -c Release
 ```
 
-## Running Benchmarks
-Benchmarks use **BenchmarkDotNet** and are located in **tests/DinoLife.Benchmarks**.
-
-### Run all benchmarks in Release mode
+## Benchmarks
 
 ```bash
 dotnet run --project tests/DinoLife.Benchmarks/DinoLife.Benchmarks.csproj -c Release
 ```
-
-**Notes:**
-Always run in Release mode for reliable measurements.
-
-**BenchmarkDotNet** outputs results in:
-
-- Console logs (summary of mean execution times, memory usage)
-- HTML reports in BenchmarkDotNet.Artifacts/results/
-
-You can open the HTML files to visualize detailed performance metrics and compare baselines.
-
----
