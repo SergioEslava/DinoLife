@@ -25,6 +25,7 @@ TestResults/
 
 # BenchmarkDotNet artifacts
 BenchmarkDotNet.Artifacts/
+.artifacts/
 
 # User-specific files
 *.rsuser

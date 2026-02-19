@@ -447,6 +447,7 @@ public sealed class Program
     {
         _menuContext = MenuContext.Tuning;
         _menuSelection = ClampMenuSelection(0, BuildMenuItems().Length);
+        _tuiRenderer?.RequestFullRedraw();
     }
 
     private void ActivateTuningSelection()
@@ -514,6 +515,7 @@ public sealed class Program
         {
             _menuContext = MenuContext.Main;
             _menuSelection = 0;
+            _tuiRenderer?.RequestFullRedraw();
         }
     }
 
