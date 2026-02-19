@@ -300,10 +300,10 @@ Add user controls, persistence, and parameter tuning for full interactivity.
 - [x] Export/Import parameter files
 
 #### 4.5 Help System
-- [ ] In-game help screen (key: `H`)
-- [ ] Command reference
-- [ ] Entity behavior summary
-- [ ] Tips for interesting scenarios
+- [x] In-game help screen (key: `H`)
+- [x] Command reference
+- [x] Entity behavior summary
+- [x] Tips for interesting scenarios
 
 #### 4.6 Configuration Files
 - [ ] `appsettings.json` for global config
