@@ -62,7 +62,7 @@ public sealed class TerminalRenderer : IInteractiveRenderer
     {
         EnsureBuffers();
         UpdateViewport();
-        Console.CursorVisible = false;
+        TrySetCursorVisible(false);
         Console.ForegroundColor = _scheme.Default;
         Console.Clear();
         _initialized = true;
@@ -72,6 +72,7 @@ public sealed class TerminalRenderer : IInteractiveRenderer
     {
         if (!_initialized) { Initialize(); }
 
+        TrySetCursorVisible(false);
         EnsureBuffers();
         UpdateViewport();
         PrepareCamera(snapshot);
@@ -97,9 +98,15 @@ public sealed class TerminalRenderer : IInteractiveRenderer
     {
         if (!_initialized) { return; }
 
-        Console.CursorVisible = true;
+        TrySetCursorVisible(true);
         Console.ForegroundColor = _scheme.Default;
         _initialized = false;
+    }
+
+    public void RequestFullRedraw()
+    {
+        _doubleBuffer?.InvalidateFront();
+        Console.Clear();
     }
 
     public void Pan(float normalizedX, float normalizedY)
@@ -610,5 +617,17 @@ public sealed class TerminalRenderer : IInteractiveRenderer
     private void SetCell(int x, int y, char c, ConsoleColor color)
     {
         _doubleBuffer?.SetBackCell(x, y, c, color);
+    }
+
+    private static void TrySetCursorVisible(bool visible)
+    {
+        try
+        {
+            Console.CursorVisible = visible;
+        }
+        catch (Exception)
+        {
+            // Some terminal hosts do not support CursorVisible; ignore.
+        }
     }
 }

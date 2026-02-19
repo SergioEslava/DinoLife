@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DinoLife.Rendering.Terminal.UI;
 
 namespace DinoLife.Rendering.Terminal;
 
@@ -10,10 +11,13 @@ namespace DinoLife.Rendering.Terminal;
 public sealed class TerminalGuiRenderer : IInteractiveRenderer
 {
     private readonly TerminalRenderer _inner;
+    private readonly OverlayHost _overlayHost = new();
+    private readonly CommandMenuOverlay _menuOverlay = new();
 
     public TerminalGuiRenderer(ColorScheme? scheme = null)
     {
         _inner = new TerminalRenderer(scheme);
+        _overlayHost.Add(_menuOverlay);
     }
 
     public bool ShowPerformanceOverlay
@@ -46,7 +50,19 @@ public sealed class TerminalGuiRenderer : IInteractiveRenderer
         set => _inner.FollowEntityId = value;
     }
 
-    public bool ShowMenuOverlay { get; set; }
+    public bool ShowMenuOverlay
+    {
+        get => _menuOverlay.IsVisible;
+        set
+        {
+            bool wasVisible = _menuOverlay.IsVisible;
+            _menuOverlay.IsVisible = value;
+            if (wasVisible && !value)
+            {
+                _inner.RequestFullRedraw();
+            }
+        }
+    }
 
     public string MenuTitle { get; set; } = "COMMAND MENU";
 
@@ -59,7 +75,11 @@ public sealed class TerminalGuiRenderer : IInteractiveRenderer
     public void Render(WorldSnapshot snapshot)
     {
         _inner.Render(snapshot);
-        DrawMenuOverlay();
+        _menuOverlay.Title = MenuTitle;
+        _menuOverlay.Items = MenuItems;
+        _menuOverlay.SelectedIndex = SelectedMenuIndex;
+        _overlayHost.Render(UiCanvas.CreateForConsole());
+        TryHideCursor();
     }
 
     public void Shutdown() => _inner.Shutdown();
@@ -72,70 +92,16 @@ public sealed class TerminalGuiRenderer : IInteractiveRenderer
 
     public void ResetCamera() => _inner.ResetCamera();
 
-    private void DrawMenuOverlay()
+    private static void TryHideCursor()
     {
-        if (!ShowMenuOverlay) { return; }
-
-        int windowWidth = Math.Clamp(Console.WindowWidth, 40, 80);
-        int maxItems = Math.Max(1, Console.WindowHeight - 8);
-        int itemCount = Math.Min(MenuItems.Count, maxItems);
-        int windowHeight = itemCount + 4;
-        int left = Math.Max(0, (Console.WindowWidth - windowWidth) / 2);
-        int top = Math.Max(1, (Console.WindowHeight - windowHeight) / 2);
-
-        int selected = SelectedMenuIndex;
-        if (itemCount == 0) { selected = -1; }
-        else { selected = Math.Clamp(selected, 0, itemCount - 1); }
-
-        ConsoleColor previousForeground = Console.ForegroundColor;
-        ConsoleColor previousBackground = Console.BackgroundColor;
-
-        DrawHorizontalBorder(left, top, windowWidth, '+', '-', '+');
-        DrawHorizontalBorder(left, top + windowHeight - 1, windowWidth, '+', '-', '+');
-        for (int row = 1; row < windowHeight - 1; row++)
+        try
         {
-            WriteAt(left, top + row, "|");
-            WriteAt(left + windowWidth - 1, top + row, "|");
-            WriteAt(left + 1, top + row, new string(' ', windowWidth - 2));
+            Console.CursorVisible = false;
         }
-
-        string title = $"{MenuTitle} [M close]";
-        WriteAt(left + 2, top, title[..Math.Min(title.Length, windowWidth - 4)], ConsoleColor.White);
-
-        for (int i = 0; i < itemCount; i++)
+        catch (Exception)
         {
-            bool isSelected = i == selected;
-            ConsoleColor fg = isSelected ? ConsoleColor.Black : ConsoleColor.White;
-            ConsoleColor bg = isSelected ? ConsoleColor.Gray : ConsoleColor.Black;
-            string line = $"{(isSelected ? '>' : ' ')} {MenuItems[i]}";
-            if (line.Length > windowWidth - 4) { line = line[..(windowWidth - 4)]; }
-            line = line.PadRight(windowWidth - 4);
-            WriteAt(left + 2, top + 2 + i, line, fg, bg);
+            // Ignore unsupported cursor APIs on some hosts.
         }
-
-        Console.ForegroundColor = previousForeground;
-        Console.BackgroundColor = previousBackground;
     }
 
-    private static void DrawHorizontalBorder(int left, int y, int width, char start, char fill, char end)
-    {
-        if (width <= 1) { return; }
-        WriteAt(left, y, start.ToString());
-        WriteAt(left + 1, y, new string(fill, width - 2));
-        WriteAt(left + width - 1, y, end.ToString());
-    }
-
-    private static void WriteAt(int x, int y, string text, ConsoleColor? foreground = null, ConsoleColor? background = null)
-    {
-        if (x < 0 || y < 0 || x >= Console.WindowWidth || y >= Console.WindowHeight) { return; }
-
-        int maxChars = Console.WindowWidth - x;
-        if (maxChars <= 0) { return; }
-        string writeText = text.Length > maxChars ? text[..maxChars] : text;
-
-        if (foreground.HasValue) { Console.ForegroundColor = foreground.Value; }
-        if (background.HasValue) { Console.BackgroundColor = background.Value; }
-        Console.SetCursorPosition(x, y);
-        Console.Write(writeText);
-    }
 }
