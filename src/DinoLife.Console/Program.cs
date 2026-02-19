@@ -41,6 +41,7 @@ public sealed class Program
     private int _selectedSaveIndex = -1;
     private int _lastAutosaveTick;
     private int _menuSelection;
+    private readonly InputRouter _inputRouter = new();
 
     public Program(string[] args)
     {
@@ -109,6 +110,17 @@ public sealed class Program
     {
         while (input.TryDequeue(out InputCommand command))
         {
+            if (_inputRouter.TryRouteMenuCommand(command.Type, out MenuCommand menuCommand))
+            {
+                HandleMenuCommand(menuCommand);
+                continue;
+            }
+
+            if (_inputRouter.BlocksWorldCommand(command.Type))
+            {
+                continue;
+            }
+
             switch (command.Type)
             {
                 case InputCommandType.TogglePause:
@@ -136,12 +148,6 @@ public sealed class Program
                     ResetSimulation();
                     break;
                 case InputCommandType.Quit:
-                    if (IsMenuOpen())
-                    {
-                        ToggleMenu();
-                        break;
-                    }
-
                     Exit();
                     break;
                 case InputCommandType.TogglePerformanceOverlay:
@@ -151,19 +157,15 @@ public sealed class Program
                     ToggleHelp();
                     break;
                 case InputCommandType.PanLeft:
-                    if (IsMenuOpen()) { break; }
                     _renderer?.Pan(-1f, 0f);
                     break;
                 case InputCommandType.PanRight:
-                    if (IsMenuOpen()) { break; }
                     _renderer?.Pan(1f, 0f);
                     break;
                 case InputCommandType.PanUp:
-                    if (MoveMenuSelection(-1)) { break; }
                     _renderer?.Pan(0f, -1f);
                     break;
                 case InputCommandType.PanDown:
-                    if (MoveMenuSelection(1)) { break; }
                     _renderer?.Pan(0f, 1f);
                     break;
                 case InputCommandType.ResetCamera:
@@ -296,11 +298,31 @@ public sealed class Program
 
     private bool IsMenuOpen() => _tuiRenderer?.ShowMenuOverlay == true;
 
+    private void HandleMenuCommand(MenuCommand command)
+    {
+        switch (command)
+        {
+            case MenuCommand.MoveUp:
+                MoveMenuSelection(-1);
+                break;
+            case MenuCommand.MoveDown:
+                MoveMenuSelection(1);
+                break;
+            case MenuCommand.Activate:
+                ActivateMenuSelection();
+                break;
+            case MenuCommand.Close:
+                ToggleMenu();
+                break;
+        }
+    }
+
     private void ToggleMenu()
     {
         if (_tuiRenderer is null) { return; }
 
         _tuiRenderer.ShowMenuOverlay = !_tuiRenderer.ShowMenuOverlay;
+        _inputRouter.SetMenuOpen(_tuiRenderer.ShowMenuOverlay);
         if (_tuiRenderer.ShowMenuOverlay)
         {
             _menuSelection = ClampMenuSelection(_menuSelection, BuildMenuItems().Length);

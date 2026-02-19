@@ -87,6 +87,11 @@ public sealed class DoubleBuffer
         (_frontColors, _backColors) = (_backColors, _frontColors);
     }
 
+    public void InvalidateFront()
+    {
+        FillGrid(_frontChars, '\0');
+    }
+
     private void FillAll(char fillChar, ConsoleColor fillColor)
     {
         FillGrid(_backChars, fillChar);
