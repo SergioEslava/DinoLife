@@ -22,7 +22,9 @@ public sealed class Program
     private bool _isExiting;
     private bool _tickOnceRequested;
     private SimulationEngine? _simulation;
-    private TerminalRenderer? _renderer;
+    private readonly RendererMode _rendererMode;
+    private IInteractiveRenderer? _renderer;
+    private TerminalGuiRenderer? _tuiRenderer;
     private Planet? _world;
     private bool _showGrid;
     private bool _showPerformanceOverlay;
@@ -38,13 +40,19 @@ public sealed class Program
     private IReadOnlyList<SaveMetadata> _saves = Array.Empty<SaveMetadata>();
     private int _selectedSaveIndex = -1;
     private int _lastAutosaveTick;
+    private int _menuSelection;
+
+    public Program(string[] args)
+    {
+        _rendererMode = RendererModeParser.Parse(args);
+    }
 
     /// <summary>
     /// Application entry point.
     /// </summary>
     public static void Main(string[] args)
     {
-        new Program().Run();
+        new Program(args).Run();
     }
 
     private void Run()
@@ -52,10 +60,11 @@ public sealed class Program
         ResetSimulation();
         RefreshSaveBrowser();
 
-        _renderer = new TerminalRenderer
-        {
-            ShowPerformanceOverlay = _showPerformanceOverlay
-        };
+        _renderer = _rendererMode == RendererMode.Tui
+            ? new TerminalGuiRenderer()
+            : new TerminalRenderer();
+        _renderer.ShowPerformanceOverlay = _showPerformanceOverlay;
+        _tuiRenderer = _renderer as TerminalGuiRenderer;
         _renderer.Initialize();
 
         InputHandler input = new InputHandler();
@@ -77,6 +86,14 @@ public sealed class Program
                 _renderer.StatusText = BuildStatusLine();
                 _renderer.SelectedEntityId = GetSelectedEntityId();
                 _renderer.FollowEntityId = _followEntity ? GetSelectedEntityId() : null;
+                if (_tuiRenderer is not null)
+                {
+                    string[] menuItems = BuildMenuItems();
+                    _tuiRenderer.MenuItems = menuItems;
+                    _menuSelection = ClampMenuSelection(_menuSelection, menuItems.Length);
+                    _tuiRenderer.SelectedMenuIndex = _menuSelection;
+                    _tuiRenderer.MenuTitle = "COMMAND MENU";
+                }
                 _renderer.Render(snapshot);
 
                 Thread.Sleep(16); // ~60 FPS render cadence
@@ -119,6 +136,12 @@ public sealed class Program
                     ResetSimulation();
                     break;
                 case InputCommandType.Quit:
+                    if (IsMenuOpen())
+                    {
+                        ToggleMenu();
+                        break;
+                    }
+
                     Exit();
                     break;
                 case InputCommandType.TogglePerformanceOverlay:
@@ -128,15 +151,19 @@ public sealed class Program
                     ToggleHelp();
                     break;
                 case InputCommandType.PanLeft:
+                    if (IsMenuOpen()) { break; }
                     _renderer?.Pan(-1f, 0f);
                     break;
                 case InputCommandType.PanRight:
+                    if (IsMenuOpen()) { break; }
                     _renderer?.Pan(1f, 0f);
                     break;
                 case InputCommandType.PanUp:
+                    if (MoveMenuSelection(-1)) { break; }
                     _renderer?.Pan(0f, -1f);
                     break;
                 case InputCommandType.PanDown:
+                    if (MoveMenuSelection(1)) { break; }
                     _renderer?.Pan(0f, 1f);
                     break;
                 case InputCommandType.ResetCamera:
@@ -159,6 +186,12 @@ public sealed class Program
                     break;
                 case InputCommandType.BrowseNextSave:
                     SelectNextSave();
+                    break;
+                case InputCommandType.ToggleMenu:
+                    ToggleMenu();
+                    break;
+                case InputCommandType.MenuActivate:
+                    ActivateMenuSelection();
                     break;
             }
         }
@@ -259,6 +292,73 @@ public sealed class Program
     private void ToggleHelp()
     {
         _showHelp = !_showHelp;
+    }
+
+    private bool IsMenuOpen() => _tuiRenderer?.ShowMenuOverlay == true;
+
+    private void ToggleMenu()
+    {
+        if (_tuiRenderer is null) { return; }
+
+        _tuiRenderer.ShowMenuOverlay = !_tuiRenderer.ShowMenuOverlay;
+        if (_tuiRenderer.ShowMenuOverlay)
+        {
+            _menuSelection = ClampMenuSelection(_menuSelection, BuildMenuItems().Length);
+        }
+    }
+
+    private bool MoveMenuSelection(int delta)
+    {
+        if (_tuiRenderer is null || !_tuiRenderer.ShowMenuOverlay) { return false; }
+
+        string[] items = BuildMenuItems();
+        if (items.Length == 0) { return true; }
+
+        _menuSelection = ClampMenuSelection(_menuSelection, items.Length);
+        _menuSelection = (_menuSelection + delta + items.Length) % items.Length;
+        return true;
+    }
+
+    private void ActivateMenuSelection()
+    {
+        if (_tuiRenderer is null || !_tuiRenderer.ShowMenuOverlay) { return; }
+
+        switch (_menuSelection)
+        {
+            case 0:
+                TogglePause();
+                break;
+            case 1:
+                RequestTick();
+                break;
+            case 2:
+                SaveState();
+                break;
+            case 3:
+                LoadState();
+                break;
+            case 4:
+                TogglePerformanceOverlay();
+                break;
+            case 5:
+                ToggleHelp();
+                break;
+            case 6:
+                ToggleGrid();
+                break;
+            case 7:
+                ToggleFollowSelected();
+                break;
+            case 8:
+                _renderer?.ResetCamera();
+                break;
+            case 9:
+                ResetSimulation();
+                break;
+            case 10:
+                Exit();
+                break;
+        }
     }
 
     private void ToggleFollowSelected()
@@ -401,7 +501,8 @@ public sealed class Program
     private string BuildStatusLine()
     {
         string speed = $"Speed:{SpeedLevels[_speedIndex]:0.##}x";
-        string baseText = _simulation?.IsStopped == true ? $"{speed} Paused" : speed;
+        string mode = _rendererMode == RendererMode.Tui ? "Renderer:TUI" : "Renderer:Legacy";
+        string baseText = _simulation?.IsStopped == true ? $"{speed} Paused {mode}" : $"{speed} {mode}";
         string saveInfo = _saves.Count > 0 && _selectedSaveIndex >= 0 && _selectedSaveIndex < _saves.Count
             ? $"Save:{_selectedSaveIndex + 1}/{_saves.Count} {_saves[_selectedSaveIndex].Name}"
             : "Save:None";
@@ -692,5 +793,31 @@ public sealed class Program
                 };
             }
         }
+    }
+
+    private string[] BuildMenuItems()
+    {
+        return
+        [
+            _simulation?.IsStopped == true ? "Resume simulation" : "Pause simulation",
+            "Step one tick",
+            "Save world",
+            "Load selected save",
+            _showPerformanceOverlay ? "Hide performance panel" : "Show performance panel",
+            _showHelp ? "Hide help panel" : "Show help panel",
+            _showGrid ? "Hide grid" : "Show grid",
+            _followEntity ? "Disable follow selected" : "Enable follow selected",
+            "Reset camera",
+            "Reset simulation",
+            "Quit"
+        ];
+    }
+
+    private static int ClampMenuSelection(int currentSelection, int itemCount)
+    {
+        if (itemCount <= 0) { return -1; }
+        if (currentSelection < 0) { return 0; }
+        if (currentSelection >= itemCount) { return itemCount - 1; }
+        return currentSelection;
     }
 }
