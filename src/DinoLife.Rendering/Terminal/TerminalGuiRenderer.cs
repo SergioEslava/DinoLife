@@ -12,11 +12,13 @@ public sealed class TerminalGuiRenderer : IInteractiveRenderer
 {
     private readonly TerminalRenderer _inner;
     private readonly OverlayHost _overlayHost = new();
+    private readonly HelpOverlay _helpOverlay = new();
     private readonly CommandMenuOverlay _menuOverlay = new();
 
     public TerminalGuiRenderer(ColorScheme? scheme = null)
     {
         _inner = new TerminalRenderer(scheme);
+        _overlayHost.Add(_helpOverlay);
         _overlayHost.Add(_menuOverlay);
     }
 
@@ -28,8 +30,17 @@ public sealed class TerminalGuiRenderer : IInteractiveRenderer
 
     public bool ShowHelpOverlay
     {
-        get => _inner.ShowHelpOverlay;
-        set => _inner.ShowHelpOverlay = value;
+        get => _helpOverlay.IsVisible;
+        set
+        {
+            bool wasVisible = _helpOverlay.IsVisible;
+            _helpOverlay.IsVisible = value;
+            _inner.ShowHelpOverlay = false;
+            if (wasVisible && !value)
+            {
+                _inner.RequestFullRedraw();
+            }
+        }
     }
 
     public string? StatusText
@@ -74,6 +85,7 @@ public sealed class TerminalGuiRenderer : IInteractiveRenderer
 
     public void Render(WorldSnapshot snapshot)
     {
+        _inner.ShowHelpOverlay = false;
         _inner.Render(snapshot);
         _menuOverlay.Title = MenuTitle;
         _menuOverlay.Items = MenuItems;

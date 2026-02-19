@@ -72,6 +72,7 @@ internal sealed class InputRouter
             and not InputCommandType.PanRight
             and not InputCommandType.SpeedDown
             and not InputCommandType.SpeedUp
+            and not InputCommandType.ToggleHelp
             and not InputCommandType.Quit;
     }
 }
