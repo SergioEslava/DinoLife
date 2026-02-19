@@ -1,0 +1,17 @@
+{
+  "ProfileName": "Stable",
+  "HerbivoreSpeed": 2.4,
+  "CarnivoreSpeed": 3,
+  "ScavengerSpeed": 2.3,
+  "HerbivoreHungerRate": 0.9,
+  "CarnivoreHungerRate": 1.1,
+  "ScavengerHungerRate": 0.45,
+  "HerbivoreReproductionThreshold": 70,
+  "CarnivoreReproductionThreshold": 95,
+  "ScavengerReproductionThreshold": 72,
+  "HerbivoreDetectionRadius": 16,
+  "CarnivoreDetectionRadius": 18,
+  "ScavengerDetectionRadius": 24,
+  "PlantGrowthRate": 0.9,
+  "PlantRespawnTime": 18
+}

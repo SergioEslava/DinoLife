@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DinoLife World Config",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "worldWidth",
+    "worldHeight",
+    "randomSeed",
+    "initialPlants",
+    "initialHerbivores",
+    "initialCarnivores",
+    "initialScavengers",
+    "tuningProfile"
+  ],
+  "properties": {
+    "worldWidth": {
+      "type": "number",
+      "minimum": 10.0,
+      "maximum": 5000.0
+    },
+    "worldHeight": {
+      "type": "number",
+      "minimum": 10.0,
+      "maximum": 5000.0
+    },
+    "randomSeed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647
+    },
+    "initialPlants": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5000
+    },
+    "initialHerbivores": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5000
+    },
+    "initialCarnivores": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5000
+    },
+    "initialScavengers": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5000
+    },
+    "tuningProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profileName",
+        "herbivoreSpeed",
+        "carnivoreSpeed",
+        "scavengerSpeed",
+        "herbivoreHungerRate",
+        "carnivoreHungerRate",
+        "scavengerHungerRate",
+        "herbivoreReproductionThreshold",
+        "carnivoreReproductionThreshold",
+        "scavengerReproductionThreshold",
+        "herbivoreDetectionRadius",
+        "carnivoreDetectionRadius",
+        "scavengerDetectionRadius",
+        "plantGrowthRate",
+        "plantRespawnTime"
+      ],
+      "properties": {
+        "profileName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "herbivoreSpeed": { "type": "number", "minimum": 0.1, "maximum": 50.0 },
+        "carnivoreSpeed": { "type": "number", "minimum": 0.1, "maximum": 50.0 },
+        "scavengerSpeed": { "type": "number", "minimum": 0.1, "maximum": 50.0 },
+        "herbivoreHungerRate": { "type": "number", "minimum": 0.01, "maximum": 20.0 },
+        "carnivoreHungerRate": { "type": "number", "minimum": 0.01, "maximum": 20.0 },
+        "scavengerHungerRate": { "type": "number", "minimum": 0.01, "maximum": 20.0 },
+        "herbivoreReproductionThreshold": { "type": "number", "minimum": 1.0, "maximum": 500.0 },
+        "carnivoreReproductionThreshold": { "type": "number", "minimum": 1.0, "maximum": 500.0 },
+        "scavengerReproductionThreshold": { "type": "number", "minimum": 1.0, "maximum": 500.0 },
+        "herbivoreDetectionRadius": { "type": "number", "minimum": 1.0, "maximum": 500.0 },
+        "carnivoreDetectionRadius": { "type": "number", "minimum": 1.0, "maximum": 500.0 },
+        "scavengerDetectionRadius": { "type": "number", "minimum": 1.0, "maximum": 500.0 },
+        "plantGrowthRate": { "type": "number", "minimum": 0.01, "maximum": 10.0 },
+        "plantRespawnTime": { "type": "number", "minimum": 0.1, "maximum": 500.0 }
+      }
+    }
+  }
+}

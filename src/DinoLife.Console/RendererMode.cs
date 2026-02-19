@@ -8,7 +8,7 @@ internal enum RendererMode
 
 internal static class RendererModeParser
 {
-    public static RendererMode Parse(string[] args)
+    public static RendererMode? ParseOptional(string[] args)
     {
         for (int i = 0; i < args.Length; i++)
         {
@@ -34,8 +34,13 @@ internal static class RendererModeParser
             {
                 return RendererMode.Tui;
             }
+
+            if (string.Equals(value, "legacy", StringComparison.OrdinalIgnoreCase))
+            {
+                return RendererMode.Legacy;
+            }
         }
 
-        return RendererMode.Legacy;
+        return null;
     }
 }

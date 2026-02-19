@@ -306,10 +306,10 @@ Add user controls, persistence, and parameter tuning for full interactivity.
 - [x] Tips for interesting scenarios
 
 #### 4.6 Configuration Files
-- [ ] `appsettings.json` for global config
-- [ ] `world-config.json` for simulation parameters
-- [ ] JSON schema validation
-- [ ] Hot-reload support
+- [x] `appsettings.json` for global config
+- [x] `world-config.json` for simulation parameters
+- [x] JSON schema validation
+- [x] Hot-reload support
 
 ### Definition of Done
 - ✅ Pause/resume works flawlessly (no desyncs)

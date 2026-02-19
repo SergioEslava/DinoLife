@@ -6,6 +6,7 @@ using DinoLife.Core.World;
 using DinoLife.Persistence;
 using DinoLife.Rendering;
 using DinoLife.Rendering.Terminal;
+using DinoLife.Cli.Configuration;
 using DinoLife.Cli.Tuning;
 using System.Diagnostics;
 
@@ -16,9 +17,6 @@ namespace DinoLife.Cli;
 /// </summary>
 public sealed class Program
 {
-    private const string SaveDirectory = "saves";
-    private const string TuningDirectory = "tuning";
-    private const int AutosaveEveryTicks = 300;
     private static readonly float[] SpeedLevels = [0.25f, 0.5f, 1f, 2f, 4f];
     private static readonly ParameterEntry[] TuningEntries =
     [
@@ -41,7 +39,8 @@ public sealed class Program
     private bool _isExiting;
     private bool _tickOnceRequested;
     private SimulationEngine? _simulation;
-    private readonly RendererMode _rendererMode;
+    private RendererMode _rendererMode = RendererMode.Legacy;
+    private readonly bool _rendererOverridden;
     private IInteractiveRenderer? _renderer;
     private TerminalGuiRenderer? _tuiRenderer;
     private Planet? _world;
@@ -51,6 +50,10 @@ public sealed class Program
     private bool _followEntity;
     private int _selectedEntitySlot = -1;
     private int _speedIndex = 2;
+    private int _targetFrameMs = 16;
+    private int _autosaveEveryTicks = 300;
+    private string _saveDirectory = "saves";
+    private string _tuningDirectory = "tuning";
     private double _tickAccumulator;
     private long _lastLoopTimestamp;
     private string? _statusMessage;
@@ -64,10 +67,18 @@ public sealed class Program
     private readonly InputRouter _inputRouter = new();
     private SimulationTuningProfile _tuningProfile = TuningPresets.Balanced();
     private readonly TuningFileStore _tuningFileStore = new();
+    private readonly ConfigManager _configManager = new(Environment.CurrentDirectory);
+    private AppSettingsConfig _appSettings = new();
+    private WorldConfig _worldConfig = new();
 
     public Program(string[] args)
     {
-        _rendererMode = RendererModeParser.Parse(args);
+        RendererMode? rendererMode = RendererModeParser.ParseOptional(args);
+        if (rendererMode.HasValue)
+        {
+            _rendererOverridden = true;
+            _rendererMode = rendererMode.Value;
+        }
     }
 
     /// <summary>
@@ -78,8 +89,79 @@ public sealed class Program
         new Program(args).Run();
     }
 
+    private void LoadConfiguration()
+    {
+        bool loaded = _configManager.LoadInitial(out _appSettings, out _worldConfig, out string message);
+        ApplyAppSettings(_appSettings);
+        ApplyWorldConfig(_worldConfig, applyToCurrentWorld: false);
+
+        if (!_rendererOverridden)
+        {
+            _rendererMode = ParseRenderer(_appSettings.RendererDefault);
+        }
+
+        if (!loaded && !string.IsNullOrWhiteSpace(message))
+        {
+            SetStatus($"Config warning: {message}");
+        }
+    }
+
+    private void TryHotReloadConfigs()
+    {
+        bool changed = _configManager.TryHotReload(
+            _appSettings.HotReloadEnabled,
+            out AppSettingsConfig? reloadedApp,
+            out WorldConfig? reloadedWorld,
+            out string message);
+
+        if (!changed && string.IsNullOrWhiteSpace(message)) { return; }
+
+        if (reloadedApp is not null)
+        {
+            _appSettings = reloadedApp;
+            ApplyAppSettings(_appSettings);
+        }
+
+        if (reloadedWorld is not null)
+        {
+            _worldConfig = reloadedWorld;
+            ApplyWorldConfig(_worldConfig, applyToCurrentWorld: true);
+        }
+
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            SetStatus(message);
+        }
+    }
+
+    private void ApplyAppSettings(AppSettingsConfig appSettings)
+    {
+        _targetFrameMs = Math.Clamp(appSettings.TargetFrameMs, 1, 1000);
+        _autosaveEveryTicks = Math.Clamp(appSettings.AutosaveEveryTicks, 1, 1_000_000);
+        _saveDirectory = string.IsNullOrWhiteSpace(appSettings.SaveDirectory) ? "saves" : appSettings.SaveDirectory;
+        _tuningDirectory = string.IsNullOrWhiteSpace(appSettings.TuningDirectory) ? "tuning" : appSettings.TuningDirectory;
+    }
+
+    private void ApplyWorldConfig(WorldConfig worldConfig, bool applyToCurrentWorld)
+    {
+        _tuningProfile = worldConfig.TuningProfile?.Clone() ?? TuningPresets.Balanced();
+
+        if (!applyToCurrentWorld || _world is null) { return; }
+
+        _world.WorldSize = new Vector2(worldConfig.WorldWidth, worldConfig.WorldHeight);
+        ApplyTuningToWorld();
+    }
+
+    private static RendererMode ParseRenderer(string value)
+    {
+        return string.Equals(value, "tui", StringComparison.OrdinalIgnoreCase)
+            ? RendererMode.Tui
+            : RendererMode.Legacy;
+    }
+
     private void Run()
     {
+        LoadConfiguration();
         ResetSimulation();
         RefreshSaveBrowser();
 
@@ -99,6 +181,7 @@ public sealed class Program
             {
                 input.Poll();
                 ProcessInputQueue(input);
+                TryHotReloadConfigs();
                 StepSimulationBySpeed();
 
                 if (_world is null || _renderer is null) { continue; }
@@ -121,7 +204,7 @@ public sealed class Program
                 }
                 _renderer.Render(snapshot);
 
-                Thread.Sleep(16); // ~60 FPS render cadence
+                Thread.Sleep(_targetFrameMs);
             }
         }
         finally
@@ -492,14 +575,14 @@ public sealed class Program
 
         if (_menuSelection == exportIndex)
         {
-            string path = _tuningFileStore.Export(TuningDirectory, _tuningProfile);
+            string path = _tuningFileStore.Export(_tuningDirectory, _tuningProfile);
             SetStatus($"Params exported: {Path.GetFileName(path)}");
             return;
         }
 
         if (_menuSelection == importIndex)
         {
-            if (!_tuningFileStore.TryImportLatest(TuningDirectory, out SimulationTuningProfile imported, out string path, out string error))
+            if (!_tuningFileStore.TryImportLatest(_tuningDirectory, out SimulationTuningProfile imported, out string path, out string error))
             {
                 SetStatus(error);
                 return;
@@ -539,7 +622,7 @@ public sealed class Program
     private void SaveState()
     {
         if (_world is null) { return; }
-        string path = BuildManualSavePath();
+        string path = BuildManualSavePath(_saveDirectory);
         _serializer.Save(path, _world);
         RefreshSaveBrowser(selectPath: path);
         SetStatus($"Saved: {Path.GetFileName(path)}");
@@ -584,9 +667,9 @@ public sealed class Program
     {
         Planet world = new Planet
         {
-            WorldSize = new Vector2(120f, 40f)
+            WorldSize = new Vector2(_worldConfig.WorldWidth, _worldConfig.WorldHeight)
         };
-        SeedWorld(world);
+        SeedWorld(world, _worldConfig, _tuningProfile);
         world.DebugDrawGrid = _showGrid;
         _world = world;
         _simulation = FactorySimulation.GenerateDefaultSimulation(world);
@@ -681,7 +764,7 @@ public sealed class Program
     private void TryAutosave()
     {
         if (_world is null) { return; }
-        if (_world.Tick - _lastAutosaveTick < AutosaveEveryTicks) { return; }
+        if (_world.Tick - _lastAutosaveTick < _autosaveEveryTicks) { return; }
 
         string path = BuildAutosavePath(_world.Tick);
         _serializer.Save(path, _world);
@@ -692,7 +775,7 @@ public sealed class Program
 
     private void RefreshSaveBrowser(string? selectPath = null)
     {
-        _saves = _saveBrowser.ListSaves(SaveDirectory);
+        _saves = _saveBrowser.ListSaves(_saveDirectory);
         if (_saves.Count == 0)
         {
             _selectedSaveIndex = -1;
@@ -749,29 +832,29 @@ public sealed class Program
         SetStatus($"Selected save: {_saves[_selectedSaveIndex].Name}");
     }
 
-    private static string BuildManualSavePath()
+    private static string BuildManualSavePath(string saveDirectory)
     {
         string timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss");
-        return Path.Combine(SaveDirectory, $"manual-{timestamp}.json");
+        return Path.Combine(saveDirectory, $"manual-{timestamp}.json");
     }
 
-    private static string BuildAutosavePath(int tick)
+    private string BuildAutosavePath(int tick)
     {
         string timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss");
-        return Path.Combine(SaveDirectory, $"auto-{tick:D8}-{timestamp}.json");
+        return Path.Combine(_saveDirectory, $"auto-{tick:D8}-{timestamp}.json");
     }
 
-    private static void SeedWorld(Planet world)
+    private static void SeedWorld(Planet world, WorldConfig config, SimulationTuningProfile tuningProfile)
     {
-        Random rng = new Random(1234);
+        Random rng = new Random(config.RandomSeed);
 
-        CreatePlantEntities(world, count: 60, rng);
-        CreateEntities(world, EntityType.Herbivore, count: 20, rng, hasMovement: true, speed: 3f);
-        CreateEntities(world, EntityType.Carnivore, count: 8, rng, hasMovement: true, speed: 4f);
-        CreateEntities(world, EntityType.Scavenger, count: 12, rng, hasMovement: true, speed: 2.5f);
+        CreatePlantEntities(world, config.InitialPlants, tuningProfile, rng);
+        CreateEntities(world, EntityType.Herbivore, config.InitialHerbivores, tuningProfile, rng, hasMovement: true);
+        CreateEntities(world, EntityType.Carnivore, config.InitialCarnivores, tuningProfile, rng, hasMovement: true);
+        CreateEntities(world, EntityType.Scavenger, config.InitialScavengers, tuningProfile, rng, hasMovement: true);
     }
 
-    private static void CreatePlantEntities(Planet world, int count, Random rng)
+    private static void CreatePlantEntities(Planet world, int count, SimulationTuningProfile tuningProfile, Random rng)
     {
         Vector2[] positions = GenerateJitteredGrid(count, world.WorldSize, rng);
         for (int i = 0; i < count; i++)
@@ -791,8 +874,8 @@ public sealed class Program
             {
                 Energy = 20f,
                 MaxEnergy = 50f,
-                GrowthRate = 0.5f,
-                RespawnTime = 30f,
+                GrowthRate = tuningProfile.PlantGrowthRate,
+                RespawnTime = tuningProfile.PlantRespawnTime,
                 RespawnTimer = 0f,
                 IsActive = true
             };
@@ -827,9 +910,9 @@ public sealed class Program
         Planet world,
         EntityType type,
         int count,
+        SimulationTuningProfile tuningProfile,
         Random rng,
-        bool hasMovement,
-        float speed)
+        bool hasMovement)
     {
         for (int i = 0; i < count; i++)
         {
@@ -856,7 +939,13 @@ public sealed class Program
 
             if (hasMovement)
             {
-                float adjustedSpeed = type == EntityType.Scavenger ? 3.0f : speed;
+                float adjustedSpeed = type switch
+                {
+                    EntityType.Herbivore => tuningProfile.HerbivoreSpeed,
+                    EntityType.Carnivore => tuningProfile.CarnivoreSpeed,
+                    EntityType.Scavenger => tuningProfile.ScavengerSpeed,
+                    _ => 0f
+                };
                 world.Movements[slot] = new Movement
                 {
                     Velocity = Vector2.Zero,
@@ -869,9 +958,10 @@ public sealed class Program
             {
                 float hungerRate = type switch
                 {
-                    EntityType.Carnivore => 1.5f,
-                    EntityType.Scavenger => 0.6f,
-                    _ => 1.3f
+                    EntityType.Herbivore => tuningProfile.HerbivoreHungerRate,
+                    EntityType.Carnivore => tuningProfile.CarnivoreHungerRate,
+                    EntityType.Scavenger => tuningProfile.ScavengerHungerRate,
+                    _ => 1.0f
                 };
                 float maxEnergy = type == EntityType.Scavenger ? 120f : 100f;
                 float startEnergy = type == EntityType.Scavenger ? 60f : 50f;
@@ -891,7 +981,7 @@ public sealed class Program
                     world.Diets[slot] = new Diet
                     {
                         FoodType = FoodType.Corpse,
-                        DetectionRadius = 35f,
+                        DetectionRadius = tuningProfile.ScavengerDetectionRadius,
                         EatRadius = 2.5f,
                         EatingDuration = 1f
                     };
@@ -901,7 +991,9 @@ public sealed class Program
                     world.Diets[slot] = new Diet
                     {
                         FoodType = type == EntityType.Carnivore ? FoodType.Herbivore : FoodType.Plant,
-                        DetectionRadius = 20f,
+                        DetectionRadius = type == EntityType.Carnivore
+                            ? tuningProfile.CarnivoreDetectionRadius
+                            : tuningProfile.HerbivoreDetectionRadius,
                         EatRadius = 2f,
                         EatingDuration = 1f
                     };
@@ -914,7 +1006,7 @@ public sealed class Program
                 {
                     world.Reproductions[slot] = new Reproduction
                     {
-                        ReproductionThreshold = 80f,
+                        ReproductionThreshold = tuningProfile.CarnivoreReproductionThreshold,
                         ReproductionCost = 25f,
                         Cooldown = 0f,
                         CooldownDuration = 40f
@@ -924,7 +1016,7 @@ public sealed class Program
                 {
                     world.Reproductions[slot] = new Reproduction
                     {
-                        ReproductionThreshold = 55f,
+                        ReproductionThreshold = tuningProfile.ScavengerReproductionThreshold,
                         ReproductionCost = 20f,
                         Cooldown = 0f,
                         CooldownDuration = 60f
@@ -934,7 +1026,7 @@ public sealed class Program
                 {
                     world.Reproductions[slot] = new Reproduction
                     {
-                        ReproductionThreshold = 55f,
+                        ReproductionThreshold = tuningProfile.HerbivoreReproductionThreshold,
                         ReproductionCost = 13f,
                         Cooldown = 0f,
                         CooldownDuration = 11f

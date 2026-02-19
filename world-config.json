@@ -1,0 +1,26 @@
+{
+  "worldWidth": 120.0,
+  "worldHeight": 40.0,
+  "randomSeed": 1234,
+  "initialPlants": 60,
+  "initialHerbivores": 20,
+  "initialCarnivores": 8,
+  "initialScavengers": 12,
+  "tuningProfile": {
+    "profileName": "Balanced",
+    "herbivoreSpeed": 6.0,
+    "carnivoreSpeed": 4.0,
+    "scavengerSpeed": 3.0,
+    "herbivoreHungerRate": 1.3,
+    "carnivoreHungerRate": 1.5,
+    "scavengerHungerRate": 0.6,
+    "herbivoreReproductionThreshold": 55.0,
+    "carnivoreReproductionThreshold": 80.0,
+    "scavengerReproductionThreshold": 55.0,
+    "herbivoreDetectionRadius": 20.0,
+    "carnivoreDetectionRadius": 20.0,
+    "scavengerDetectionRadius": 35.0,
+    "plantGrowthRate": 0.5,
+    "plantRespawnTime": 30.0
+  }
+}
