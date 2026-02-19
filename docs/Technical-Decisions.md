@@ -1,290 +1,113 @@
 # Technical Decisions (ADRs)
 
-> Architecture Decision Records for DinoLife v1.0
+Architecture Decision Records for DinoLife v1.0.
 
 ## ADR-001: Data-Oriented Hybrid Architecture
 
-**Status:** ✅ Accepted  
-**Date:** 2026-02-04  
-**Context:** Need to choose between ECS pure, OOP, or Data-Oriented Design
+- Status: Accepted
+- Date: 2026-02-04
+- Decision: store simulation data in parallel arrays with stateless systems.
+- Why:
+  - high cache locality
+  - simple, explicit memory layout
+  - easier performance profiling than deep object graphs
 
-### Decision
-Use **Data-Oriented Hybrid** approach with struct-based data and separate systems.
+## ADR-002: JSON Persistence
 
-### Rationale
-- **Performance:** Cache-friendly data layout (SoA - Structure of Arrays)
-- **Simplicity:** Faster development than pure ECS for v1.0 scope
-- **Maintainability:** Clear separation of data and logic
-- **Migration Path:** Can refactor to ECS (Unity DOTS) in v2.0 if needed
+- Status: Accepted
+- Date: 2026-02-04
+- Decision: use `System.Text.Json` for world save/load.
+- Why:
+  - readable save files
+  - zero extra runtime dependency
+  - schema evolution is manageable in v1 scope
 
-### Implementation
-```csharp
-// Data: Separate arrays per component type
-Entity[] entities;
-Transform[] transforms;
-Metabolism[] metabolisms;
+## ADR-003: Terminal Rendering with Internal TUI Layer
 
-// Systems: Stateless processors
-MovementSystem.Update(ref transforms, ref movements, deltaTime);
-```
+- Status: Accepted
+- Date: 2026-02-04 (updated 2026-02-19)
+- Decision:
+  - keep direct console renderer (`TerminalRenderer`) with double-buffer diff
+  - add internal overlay-based TUI layer (`TerminalGuiRenderer`)
+- Why:
+  - preserves rendering control and performance
+  - enables richer in-game UI without external TUI dependency
+  - supports gradual UI evolution through overlays
 
-### Alternatives Considered
-1. **Pure ECS** (DefaultEcs, Arch) - Rejected: Overhead for v1.0 scope
-2. **OOP** (GameObject hierarchy) - Rejected: Poor cache performance at scale
+## ADR-004: Fixed 60 TPS Simulation
 
----
+- Status: Accepted
+- Date: 2026-02-04
+- Decision: run simulation updates at fixed 60 ticks/sec.
+- Why:
+  - deterministic behavior
+  - consistent cross-machine simulation progression
+  - test-friendly timing model
 
-## ADR-002: JSON for Persistence
+## ADR-005: Lightweight Stat Variation
 
-**Status:** ✅ Accepted  
-**Date:** 2026-02-04
+- Status: Accepted
+- Date: 2026-02-04
+- Decision: keep non-genetic stat variation in reproduction path.
+- Why:
+  - enough diversity for emergent behavior in v1
+  - lower implementation complexity
 
-### Decision
-Use `System.Text.Json` for save/load serialization.
+## ADR-006: EntityType + ComponentFlags (No Inheritance Tree)
 
-### Rationale
-- **Debuggability:** Human-readable saved states
-- **Simplicity:** Native .NET8 support, no dependencies
-- **Flexibility:** Easy schema changes during development
-- **Acceptable Performance:** <1s for 5000 entity saves
+- Status: Accepted
+- Date: 2026-02-04
+- Decision: represent entity behavior via type enum and component flags.
+- Why:
+  - avoids polymorphic dispatch overhead
+  - aligns with data-oriented systems
 
-### Trade-offs
-- **File Size:** Larger than binary (acceptable for v1.0)
-- **Speed:** Slower than MessagePack (still within budget)
+## ADR-007: Uniform Spatial Grid
 
-### Example Format
-```json
-{
-  "version": "1.0.0",
-  "tick": 15420,
-  "entities": [
-    { "id": "a1b2c3", "type": "Herbivore", "energy": 75.5 }
-  ]
-}
-```
+- Status: Accepted
+- Date: 2026-02-04
+- Decision: use uniform grid for neighborhood queries.
+- Why:
+  - predictable performance and implementation simplicity
+  - good fit for current world scale and entity density
 
-### Migration Path
-Consider MessagePack in v1.1 if performance profiling shows bottleneck.
+## ADR-008: Dependency Policy
 
----
+- Status: Accepted
+- Date: 2026-02-04
+- Decision:
+  - keep simulation core dependency-light
+  - allow standard test/benchmark tooling
+- Why:
+  - minimizes external breakage risk
+  - keeps portability high
 
-## ADR-003: Direct Console Rendering
+## ADR-009: File-Based Runtime Configuration + Hot Reload
 
-**Status:** ✅ Accepted  
-**Date:** 2026-02-04
+- Status: Accepted
+- Date: 2026-02-19
+- Decision:
+  - add `appsettings.json` for app-level behavior
+  - add `world-config.json` for world defaults and tuning
+  - validate with JSON schemas before applying
+  - hot-reload changes at runtime (polling-based)
+- Why:
+  - faster balancing and experimentation loop
+  - safer runtime config edits through schema guardrails
+  - no restart required for most operational changes
 
-### Decision
-Use direct `Console` API with double-buffering, no external TUI framework.
+## Repository Status (2026-02-19)
 
-### Rationale
-- **Control:** Full control over rendering pipeline
-- **Performance:** Minimal overhead, direct buffer writes
-- **Learning:** Understand rendering fundamentals
-- **Unity Prep:** Renderer abstraction makes Unity port trivial
-
-### Implementation Pattern
-```csharp
-interface IRenderer {
-    void Render(WorldState state);
-}
-
-class TerminalRenderer : IRenderer {
-    char[,] backBuffer;
-    char[,] frontBuffer;
-    
-    void Render(WorldState state) {
-        // Write to backBuffer
-        // Swap buffers
-        // Write diff to Console
-    }
-}
-```
-
-### Alternatives Considered
-1. **Spectre.Console** - Rejected: Less rendering control
-2. **Terminal.Gui** - Rejected: Overkill for simple visualization
-
----
-
-## ADR-004: 60 TPS Fixed Timestep
-
-**Status:** ✅ Accepted  
-**Date:** 2026-02-04
-
-### Decision
-Run simulation at fixed 60 ticks per second (16.67ms per tick).
-
-### Rationale
-- **Determinism:** Same inputs = same outputs
-- **Predictability:** Consistent behavior across machines
-- **Standard:** Matches common game loop patterns
-- **Testing:** Easier to write deterministic tests
-
-### Implementation
-```csharp
-const double TARGET_TICK_TIME = 1.0 / 60.0;
-double accumulator = 0.0;
-
-while (running) {
-    double frameTime = timer.Elapsed;
-    accumulator += frameTime;
-    
-    while (accumulator >= TARGET_TICK_TIME) {
-        Simulate(TARGET_TICK_TIME);
-        accumulator -= TARGET_TICK_TIME;
-    }
-    
-    Render();
-}
-```
-
-### Trade-offs
-- **Flexibility:** No variable timestep (not needed for v1.0)
-- **Slow Machines:** May drop ticks (acceptable, show warning)
+- ADR-001: Implemented
+- ADR-002: Implemented
+- ADR-003: Implemented (`TerminalRenderer` + `TerminalGuiRenderer` + overlays)
+- ADR-004: Implemented
+- ADR-005: Implemented
+- ADR-006: Implemented
+- ADR-007: Implemented
+- ADR-008: Implemented
+- ADR-009: Implemented
 
 ---
 
-## ADR-005: Simple Stat Variation (No Genetics)
-
-**Status:** ✅ Accepted  
-**Date:** 2026-02-04
-
-### Decision
-Entities have fixed base stats with ±10% random variation on reproduction.
-
-### Rationale
-- **Scope:** Genetic systems are v1.1+ feature
-- **Emergence:** Sufficient for observable population dynamics
-- **Simplicity:** Faster implementation and testing
-- **Baseline:** Establishes behavior patterns before adding complexity
-
-### Example
-```csharp
-struct HerbivoreStats {
-    float Speed;        // Base: 2.5, Range: 2.25 - 2.75
-    float Metabolism;   // Base: 1.0, Range: 0.9 - 1.1
-}
-
-HerbivoreStats Reproduce(HerbivoreStats parent) {
-    return new HerbivoreStats {
-        Speed = parent.Speed * Random.Range(0.9f, 1.1f),
-        Metabolism = parent.Metabolism * Random.Range(0.9f, 1.1f)
-    };
-}
-```
-
-### Future Evolution
-v1.1: Add genome system with gene-stat mapping and mutations.
-
----
-
-## ADR-006: Entity Type Enum (Not Inheritance)
-
-**Status:** ✅ Accepted  
-**Date:** 2026-02-04
-
-### Decision
-Use `EntityType` enum with component flags, not class inheritance.
-
-### Rationale
-- **DOD Alignment:** Supports data-oriented array layouts
-- **Performance:** No virtual dispatch, better cache locality
-- **Flexibility:** Easy to add/remove components per entity
-- **Serialization:** Simple enum serialization
-
-### Implementation
-```csharp
-enum EntityType { Herbivore, Carnivore, Plant, Scavenger }
-
-struct Entity {
-    Guid Id;
-    EntityType Type;
-    ComponentFlags Components; // Bitflags
-}
-```
-
-### Alternatives Considered
-1. **Class Inheritance** - Rejected: OOP overhead, poor cache
-2. **Interface Components** - Rejected: Virtual calls, complexity
-
----
-
-## ADR-007: Spatial Partitioning - Uniform Grid
-
-**Status:** ✅ Accepted  
-**Date:** 2026-02-04
-
-### Decision
-Use uniform grid (not quadtree) for spatial queries.
-
-### Rationale
-- **Simplicity:** Easier to implement and debug
-- **Predictable:** O(1) insertion, O(k) query where k = cells checked
-- **Sufficient:** For uniform entity distribution, grid is optimal
-- **Memory:** Fixed allocation, no tree node overhead
-
-### Configuration
-```csharp
-const int GRID_CELL_SIZE = 10; // Units
-const int WORLD_SIZE = 1000;   // 100x100 grid
-```
-
-### Trade-offs
-- **Non-uniform Distribution:** Quadtree would be better (defer to v1.1)
-- **Dynamic Sizing:** Grid is fixed (acceptable for v1.0)
-
----
-
-## ADR-008: No External Dependencies (Core)
-
-**Status:** ✅ Accepted  
-**Date:** 2026-02-04
-
-### Decision
-Core simulation has zero NuGet dependencies (except testing libs).
-
-### Rationale
-- **Control:** No surprises, full code ownership
-- **Learning:** Implement fundamentals from scratch
-- **Portability:** Easy Unity integration later
-- **Stability:** No breaking changes from external libs
-
-### Exceptions
-- ✅ `xUnit` - Testing only
-- ✅ `FluentAssertions` - Testing only
-- ✅ `BenchmarkDotNet` - Performance testing only
-
-### Future Considerations
-May add MessagePack (v1.1) or Serilog (v1.2) if justified.
-
----
-
-## Summary Table
-
-| ADR | Decision | Status |
-|-----|----------|--------|
-| 001 | Data-Oriented Hybrid | ✅ Accepted |
-| 002 | JSON Persistence | ✅ Accepted |
-| 003 | Direct Console Rendering | ✅ Accepted |
-| 004 | 60 TPS Fixed Timestep | ✅ Accepted |
-| 005 | Simple Stat Variation | ✅ Accepted |
-| 006 | Entity Type Enum | ✅ Accepted |
-| 007 | Uniform Grid Partitioning | ✅ Accepted |
-| 008 | No Core Dependencies | ✅ Accepted |
-
----
-
-## Repository Status (2026-02-05)
-
-This section records the current implementation status of each ADR in the repository.
-
-- **ADR-001: Data-Oriented Hybrid** — Implemented (parallel arrays in `Planet`, struct components, systems).
-- **ADR-002: JSON for Persistence** — Not Implemented (there is a `DinoLife.Persistence` project; uses built-in `System.Text.Json`).
-- **ADR-003: Direct Console Rendering** — Planned/Partial. A `DinoLife.Rendering` project exists but a concrete terminal renderer is not found; renderer abstraction remains applicable.
-- **ADR-004: 60 TPS Fixed Timestep** — Implemented (`SimulationEngine.TickRate = 60.0`).
-- **ADR-005: Simple Stat Variation (No Genetics)** — Implemented conceptually (reproduction structs exist; no genetics system present).
-- **ADR-006: Entity Type Enum (Not Inheritance)** — Implemented (`EntityType` enum and `ComponentFlags`).
-- **ADR-007: Spatial Partitioning - Uniform Grid** — Planned. No uniform grid implementation detected; recommended as follow-up.
-- **ADR-008: No External Dependencies (Core)** — Implemented (core projects contain no external NuGet dependencies).
-
-*Last updated: 2026-02-05*
+Last updated: 2026-02-19

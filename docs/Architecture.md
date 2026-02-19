@@ -2,258 +2,107 @@
 
 ## High-Level Overview
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                   DinoLife.Console                      │
-│                    (Entry Point)                        │
-└────────────────────┬────────────────────────────────────┘
-                     │
-         ┌───────────┴───────────┐
-         │                       │
-┌────────▼─────────┐    ┌───────▼────────┐
-│  DinoLife.Core   │    │  DinoLife.     │
-│  (Simulation)    │    │  Rendering     │
-│                  │    │  (Terminal)    │
-└────────┬─────────┘    └────────────────┘
-         │
-┌────────▼──────────┐
-│  DinoLife.        │
-│  Persistence      │
-│  (Save/Load)      │
-└───────────────────┘
-```
+DinoLife is organized in 4 runtime layers:
 
-## Project Structure
+1. `DinoLife.Console`: app host, input loop, UI flow, configuration hot-reload.
+2. `DinoLife.Core`: simulation data model and systems.
+3. `DinoLife.Rendering`: rendering abstractions and terminal implementations.
+4. `DinoLife.Persistence`: save/load and save browser.
 
-```
-DinoLife/
-├── src/
-│   ├── DinoLife.Core/              # Simulation engine (no dependencies)
-│   │   ├── Entities/               # Entity data structures
-│   │   │   ├── Entity.cs
-│   │   │   ├── EntityType.cs
-│   │   │   └── ComponentFlags.cs
-│   │   ├── Components/             # Component data (structs)
-│   │   │   ├── Transform.cs
-│   │   │   ├── Metabolism.cs
-│   │   │   ├── Movement.cs
-│   │   │   ├── Diet.cs
-│   │   │   └── Reproduction.cs
-│   │   ├── Systems/                # Logic processors (stateless)
-│   │   │   ├── MovementSystem.cs
-│   │   │   ├── MetabolismSystem.cs
-│   │   │   ├── HuntingSystem.cs
-│   │   │   ├── ReproductionSystem.cs
-│   │   │   └── DeathSystem.cs
-│   │   ├── World/                  # World state & management
-│   │   │   ├── World.cs
-│   │   │   ├── WorldConfig.cs
-│   │   │   └── SpatialGrid.cs
-│   │   ├── Simulation/             # Main loop
-│   │   │   ├── SimulationEngine.cs
-│   │   │   └── FixedTimeStep.cs
-│   │   └── Utils/
-│   │       ├── RandomProvider.cs
-│   │       └── MathUtils.cs
-│   │
-│   ├── DinoLife.Rendering/         # Abstract + Terminal impl
-│   │   ├── IRenderer.cs
-│   │   ├── RenderData.cs
-│   │   └── Terminal/
-│   │       ├── TerminalRenderer.cs
-│   │       ├── DoubleBuffer.cs
-│   │       └── ColorScheme.cs
-│   │
-│   ├── DinoLife.Persistence/       # Save/Load system
-│   │   ├── IWorldSerializer.cs
-│   │   ├── JsonWorldSerializer.cs
-│   │   └── SaveFile.cs
-│   │
-│   └── DinoLife.Console/           # Main application
-│       ├── Program.cs
-│       ├── InputHandler.cs
-│       └── UI/
-│           ├── HUD.cs
-│           └── PerformanceOverlay.cs
-│
-├── tests/
-│   ├── DinoLife.Core.Tests/
-│   │   ├── Systems/
-│   │   ├── World/
-│   │   └── Integration/
-│   ├── DinoLife.Rendering.Tests/
-│   └── DinoLife.Benchmarks/
-│
-└── docs/                           # This documentation
-```
+Main loop flow:
 
-## Core Architecture Patterns
+`Input -> Command Handling -> Simulation Tick(s) -> WorldSnapshot -> Renderer -> Console`
 
-### 4. Entity Management
+## Runtime Modules
 
-**Entity Factory:**
-```csharp
-public static class EntityFactory
-{
-    public static int CreateHerbivore(World world, Vector2 position)
-    {
-        int slot = world.AllocateEntitySlot();
-        
-        world.Entities[slot] = new Entity 
-        { 
-            Type = EntityType.Herbivore,
-            Flags = ComponentFlags.Transform | 
-                    ComponentFlags.Metabolism | 
-                    ComponentFlags.Movement |
-                    ComponentFlags.Diet |
-                    ComponentFlags.Reproduction
-        };
-        
-        world.Transforms[slot] = new Transform { Position = position };
-        world.Metabolisms[slot] = new Metabolism { Energy = 100f, HungerRate = 1.0f };
-        world.Movements[slot] = new Movement { Speed = 2.5f };
-        world.Diets[slot] = new Diet { FoodType = FoodType.Plant };
-        
-        return slot;
-    }
-}
-```
+### DinoLife.Core
 
-### 5. Spatial Partitioning
+- Stores world state in parallel arrays (`Planet`).
+- Runs systems (`BehaviorSystem`, `MovementSystem`, `MetabolismSystem`, `HuntingSystem`, `ReproductionSystem`, `PlantGrowthSystem`, `DeathSystem`, `SpatialGridSystem`).
+- Uses fixed tick rate (`SimulationEngine.TickRate = 60`).
 
-```csharp
-public class SpatialGrid
-{
-    private const int CELL_SIZE = 10;
-    private readonly List<int>[] _cells;  // Entity indices per cell
-    private readonly int _gridWidth;
-    private readonly int _gridHeight;
-    
-    public IEnumerable<int> QueryRadius(Vector2 position, float radius)
-    {
-        int minX = (int)((position.X - radius) / CELL_SIZE);
-        int maxX = (int)((position.X + radius) / CELL_SIZE);
-        int minY = (int)((position.Y - radius) / CELL_SIZE);
-        int maxY = (int)((position.Y + radius) / CELL_SIZE);
-        
-        for (int y = minY; y <= maxY; y++)
-        for (int x = minX; x <= maxX; x++)
-        {
-            int cellIndex = y * _gridWidth + x;
-            foreach (int entityIndex in _cells[cellIndex])
-            {
-                yield return entityIndex;
-            }
-        }
-    }
-}
-```
+### DinoLife.Rendering
 
-### 6. Renderer Abstraction
+- `IRenderer` provides `Initialize`, `Render`, `Shutdown`.
+- `IInteractiveRenderer` extends renderer with camera and overlay controls.
+- `WorldSnapshotBuilder` converts mutable world state to immutable render snapshot.
+- `TerminalRenderer` handles legacy rendering using a double-buffer diff.
+- `TerminalGuiRenderer` composes overlays (`OverlayHost`) on top of terminal world rendering.
 
-```csharp
-public interface IRenderer
-{
-    void Initialize();
-    void Render(WorldSnapshot snapshot);
-    void Shutdown();
-}
+### DinoLife.Console
 
-public class TerminalRenderer : IRenderer
-{
-    private char[,] _backBuffer;
-    private char[,] _frontBuffer;
-    
-    public void Render(WorldSnapshot snapshot)
-    {
-        Clear(_backBuffer);
-        
-        // Draw entities
-        foreach (var entity in snapshot.Entities)
-        {
-            char symbol = GetSymbol(entity.Type);
-            _backBuffer[entity.X, entity.Y] = symbol;
-        }
-        
-        // Draw HUD
-        DrawHUD(snapshot.Stats);
-        
-        // Swap and flush
-        SwapBuffers();
-        FlushToConsole();
-    }
-}
-```
+- Owns main application loop and command processing.
+- `InputHandler` maps key events to semantic commands.
+- `InputRouter` enforces focus-aware behavior (world vs menu).
+- Supports renderer selection via CLI (`--renderer=legacy|tui`) and config default.
+- Implements parameter tuning UI, help UI, save browser flow, and camera controls.
 
-## Data Flow
+### DinoLife.Persistence
 
-```
-Input → SimulationEngine → Systems → World State → Renderer → Display
-  ↓                                        ↓
-  └────────── InputHandler ────────────────┘
-                                           ↓
-                                    Persistence ──→ Disk
-```
+- `JsonWorldSerializer` for world save/load.
+- `SaveBrowser` for listing and selecting saved files.
+- Save operations are triggered from input/menu commands and autosave cadence.
 
-1. **Input Phase:** User commands processed (pause, save, speed change)
-2. **Update Phase:** Systems modify world state in fixed timestep
-3. **Render Phase:** Renderer reads world state (non-blocking)
-4. **Persistence Phase:** Optional save on command or interval
+## UI Architecture (TUI Mode)
 
-## Key Interfaces
+TUI mode is overlay-driven:
 
-### World State Access
-```csharp
-public interface IWorldState
-{
-    int EntityCount { get; }
-    long CurrentTick { get; }
-    
-    ReadOnlySpan<Entity> GetEntities();
-    ReadOnlySpan<Transform> GetTransforms();
-    
-    IEnumerable<int> QueryEntitiesInRadius(Vector2 position, float radius);
-}
-```
+- `TerminalGuiRenderer` delegates world drawing to `TerminalRenderer`.
+- `UiCanvas` offers drawing primitives.
+- `IOverlay` defines pluggable overlay components.
+- `OverlayHost` renders active overlays in order.
+- Implemented overlays:
+  - `CommandMenuOverlay`
+  - `HelpOverlay`
 
-### Serialization
-```csharp
-public interface IWorldSerializer
-{
-    void Save(World world, string filePath);
-    World Load(string filePath);
-}
-```
+This allows incremental UI feature growth without rewriting the world renderer.
 
-## Performance Targets
+## Configuration Architecture
 
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| Tick Time | <16ms | 60 TPS sustained |
-| Entity Count | 5000 | No degradation |
-| Memory | <500MB | Working set |
-| Save Time | <1s | Full world state |
-| Load Time | <1s | Full world state |
+Configuration is file-based and runtime-reloadable:
+
+- `appsettings.json` (global app behavior)
+- `world-config.json` (world seed, initial counts, tuning profile)
+- `appsettings.schema.json` and `world-config.schema.json` (validation)
+
+`ConfigManager` responsibilities:
+
+- Ensure config files exist (write defaults if missing).
+- Validate JSON against schema subset (`SchemaSubsetValidator`).
+- Provide hot-reload polling and only apply valid updates.
+
+## Data Boundaries
+
+### Simulation -> Rendering
+
+- Renderer never mutates `Planet`.
+- Rendering only consumes `WorldSnapshot`.
+- Snapshot includes entities, corpses, world size, grid settings, and aggregate stats.
+
+### UI -> Simulation
+
+- UI commands mutate simulation state through explicit handlers in `Program`.
+- Parameter tuning applies to live entities through `WorldTuningApplier`.
+
+### Persistence -> Simulation
+
+- Load replaces current world instance and recreates simulation engine.
+- Save serializes current world state to JSON.
 
 ## Threading Model
 
-**v1.0 - Single Threaded:**
-- Main thread handles input, simulation, rendering
-- Simpler debugging and determinism
-- Sufficient for 5000 entities
+Current model is single-threaded:
 
-**v1.1+ - Multi-threaded (future):**
-- System parallelization (Jobs pattern)
-- Async rendering thread
-- Requires thread-safe spatial grid
+- Input polling, simulation updates, rendering, and hot-reload checks run on main thread.
+- This preserves deterministic update order and simplifies debugging.
 
-## Future Architecture Considerations
+## Extension Points
 
-1. **ECS Migration:** Current design supports gradual refactor to pure ECS
-2. **Unity Integration:** `IRenderer` interface enables Unity renderer drop-in
-3. **Networking:** World state serialization ready for netcode
-4. **Scripting:** Consider Roslyn scripting for runtime behavior modification
+- Add new renderer implementations via `IRenderer` / `IInteractiveRenderer`.
+- Add new overlays by implementing `IOverlay`.
+- Add new runtime parameters by extending `SimulationTuningProfile` and `WorldTuningApplier`.
+- Add new config keys by extending config models and schemas.
 
 ---
 
-*Last updated: 2026-02-05*
+Last updated: 2026-02-19
