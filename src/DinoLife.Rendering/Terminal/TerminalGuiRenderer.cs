@@ -92,6 +92,8 @@ public sealed class TerminalGuiRenderer : IInteractiveRenderer
 
     public void ResetCamera() => _inner.ResetCamera();
 
+    public void RequestFullRedraw() => _inner.RequestFullRedraw();
+
     private static void TryHideCursor()
     {
         try
