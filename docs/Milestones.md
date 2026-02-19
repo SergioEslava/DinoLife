@@ -415,12 +415,6 @@ Final polish, testing, and documentation for public release.
 - Biome system
 - Web-based viewer
 
-### Lessons Learned
-- Document what worked well
-- Document what didn't
-- Performance bottlenecks encountered
-- Architecture decisions to revisit
-
 ---
 
 ## Milestone Tracking
@@ -428,9 +422,9 @@ Final polish, testing, and documentation for public release.
 | Milestone | Status | 
 |-----------|--------|
 | M1 - Foundation | 🟢 
-| M2 - Entities | 🟡 
-| M3 - Visualization | 🟡 
-| M4 - Controls | 🔴 
+| M2 - Entities | 🟢 
+| M3 - Visualization | 🟢 
+| M4 - Controls | 🟢 
 | M5 - Release | 🔴 
 
 **Status Legend:**
@@ -441,5 +435,5 @@ Final polish, testing, and documentation for public release.
 
 ---
 
-*Last updated: 2026-02-04*
+*Last updated: 2026-02-19*
 
