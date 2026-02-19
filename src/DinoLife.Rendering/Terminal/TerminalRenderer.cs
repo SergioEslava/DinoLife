@@ -463,7 +463,8 @@ public sealed class TerminalRenderer : IInteractiveRenderer
             "R: Reset | Q/Esc: Quit | P: Perf Overlay | Autosave every N ticks",
             "Camera: A/W/D + Arrows + Home | Follow: F | Select: Tab/[ ]",
             "Grid: G",
-            "TUI mode: M open/close command menu | Enter activate"
+            "TUI mode: M menu | Enter activate | Left/Right or +/- adjust tuning",
+            "Tuning: categories + presets (Balanced/Chaotic/Stable) + export/import"
         ];
 
         int yLine = panelTop;
