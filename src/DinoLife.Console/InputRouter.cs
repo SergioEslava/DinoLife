@@ -10,6 +10,8 @@ internal enum MenuCommand
 {
     MoveUp,
     MoveDown,
+    MoveLeft,
+    MoveRight,
     Activate,
     Close
 }
@@ -38,6 +40,14 @@ internal sealed class InputRouter
             case InputCommandType.PanDown:
                 command = MenuCommand.MoveDown;
                 return true;
+            case InputCommandType.PanLeft:
+            case InputCommandType.SpeedDown:
+                command = MenuCommand.MoveLeft;
+                return true;
+            case InputCommandType.PanRight:
+            case InputCommandType.SpeedUp:
+                command = MenuCommand.MoveRight;
+                return true;
             case InputCommandType.MenuActivate:
                 command = MenuCommand.Activate;
                 return true;
@@ -58,6 +68,10 @@ internal sealed class InputRouter
             and not InputCommandType.MenuActivate
             and not InputCommandType.PanUp
             and not InputCommandType.PanDown
+            and not InputCommandType.PanLeft
+            and not InputCommandType.PanRight
+            and not InputCommandType.SpeedDown
+            and not InputCommandType.SpeedUp
             and not InputCommandType.Quit;
     }
 }

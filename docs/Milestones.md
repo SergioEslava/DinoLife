@@ -288,16 +288,16 @@ Add user controls, persistence, and parameter tuning for full interactivity.
 - [x] Corruption detection
 
 #### 4.4 Parameter Tuning UI
-- [ ] In-game menu for parameter editing
-- [ ] Live parameter updates (no restart)
-- [ ] Parameter categories:
+- [x] In-game menu for parameter editing
+- [x] Live parameter updates (no restart)
+- [x] Parameter categories:
   - Movement speeds
   - Metabolism rates
   - Reproduction thresholds
   - Detection radii
   - Growth rates
-- [ ] Preset configurations (Balanced, Chaotic, Stable)
-- [ ] Export/Import parameter files
+- [x] Preset configurations (Balanced, Chaotic, Stable)
+- [x] Export/Import parameter files
 
 #### 4.5 Help System
 - [ ] In-game help screen (key: `H`)

@@ -6,6 +6,7 @@ using DinoLife.Core.World;
 using DinoLife.Persistence;
 using DinoLife.Rendering;
 using DinoLife.Rendering.Terminal;
+using DinoLife.Cli.Tuning;
 using System.Diagnostics;
 
 namespace DinoLife.Cli;
@@ -16,8 +17,26 @@ namespace DinoLife.Cli;
 public sealed class Program
 {
     private const string SaveDirectory = "saves";
+    private const string TuningDirectory = "tuning";
     private const int AutosaveEveryTicks = 300;
     private static readonly float[] SpeedLevels = [0.25f, 0.5f, 1f, 2f, 4f];
+    private static readonly ParameterEntry[] TuningEntries =
+    [
+        new("Movement", "Herbivore speed", 0.1f, 0.2f, 20f, p => p.HerbivoreSpeed, (p, v) => p.HerbivoreSpeed = v),
+        new("Movement", "Carnivore speed", 0.1f, 0.2f, 20f, p => p.CarnivoreSpeed, (p, v) => p.CarnivoreSpeed = v),
+        new("Movement", "Scavenger speed", 0.1f, 0.2f, 20f, p => p.ScavengerSpeed, (p, v) => p.ScavengerSpeed = v),
+        new("Metabolism", "Herbivore hunger", 0.05f, 0.05f, 10f, p => p.HerbivoreHungerRate, (p, v) => p.HerbivoreHungerRate = v),
+        new("Metabolism", "Carnivore hunger", 0.05f, 0.05f, 10f, p => p.CarnivoreHungerRate, (p, v) => p.CarnivoreHungerRate = v),
+        new("Metabolism", "Scavenger hunger", 0.05f, 0.05f, 10f, p => p.ScavengerHungerRate, (p, v) => p.ScavengerHungerRate = v),
+        new("Reproduction", "Herbivore threshold", 1f, 1f, 200f, p => p.HerbivoreReproductionThreshold, (p, v) => p.HerbivoreReproductionThreshold = v),
+        new("Reproduction", "Carnivore threshold", 1f, 1f, 200f, p => p.CarnivoreReproductionThreshold, (p, v) => p.CarnivoreReproductionThreshold = v),
+        new("Reproduction", "Scavenger threshold", 1f, 1f, 200f, p => p.ScavengerReproductionThreshold, (p, v) => p.ScavengerReproductionThreshold = v),
+        new("Detection", "Herbivore radius", 0.5f, 1f, 100f, p => p.HerbivoreDetectionRadius, (p, v) => p.HerbivoreDetectionRadius = v),
+        new("Detection", "Carnivore radius", 0.5f, 1f, 100f, p => p.CarnivoreDetectionRadius, (p, v) => p.CarnivoreDetectionRadius = v),
+        new("Detection", "Scavenger radius", 0.5f, 1f, 100f, p => p.ScavengerDetectionRadius, (p, v) => p.ScavengerDetectionRadius = v),
+        new("Growth", "Plant growth rate", 0.05f, 0.01f, 5f, p => p.PlantGrowthRate, (p, v) => p.PlantGrowthRate = v),
+        new("Growth", "Plant respawn time", 0.5f, 1f, 200f, p => p.PlantRespawnTime, (p, v) => p.PlantRespawnTime = v)
+    ];
 
     private bool _isExiting;
     private bool _tickOnceRequested;
@@ -41,7 +60,10 @@ public sealed class Program
     private int _selectedSaveIndex = -1;
     private int _lastAutosaveTick;
     private int _menuSelection;
+    private MenuContext _menuContext = MenuContext.Main;
     private readonly InputRouter _inputRouter = new();
+    private SimulationTuningProfile _tuningProfile = TuningPresets.Balanced();
+    private readonly TuningFileStore _tuningFileStore = new();
 
     public Program(string[] args)
     {
@@ -93,7 +115,9 @@ public sealed class Program
                     _tuiRenderer.MenuItems = menuItems;
                     _menuSelection = ClampMenuSelection(_menuSelection, menuItems.Length);
                     _tuiRenderer.SelectedMenuIndex = _menuSelection;
-                    _tuiRenderer.MenuTitle = "COMMAND MENU";
+                    _tuiRenderer.MenuTitle = _menuContext == MenuContext.Main
+                        ? "COMMAND MENU"
+                        : $"PARAMETER TUNING [{_tuningProfile.ProfileName}]";
                 }
                 _renderer.Render(snapshot);
 
@@ -308,6 +332,12 @@ public sealed class Program
             case MenuCommand.MoveDown:
                 MoveMenuSelection(1);
                 break;
+            case MenuCommand.MoveLeft:
+                AdjustMenuSelectionValue(-1f);
+                break;
+            case MenuCommand.MoveRight:
+                AdjustMenuSelectionValue(1f);
+                break;
             case MenuCommand.Activate:
                 ActivateMenuSelection();
                 break;
@@ -322,6 +352,10 @@ public sealed class Program
         if (_tuiRenderer is null) { return; }
 
         _tuiRenderer.ShowMenuOverlay = !_tuiRenderer.ShowMenuOverlay;
+        if (_tuiRenderer.ShowMenuOverlay)
+        {
+            _menuContext = MenuContext.Main;
+        }
         _inputRouter.SetMenuOpen(_tuiRenderer.ShowMenuOverlay);
         if (_tuiRenderer.ShowMenuOverlay)
         {
@@ -341,9 +375,32 @@ public sealed class Program
         return true;
     }
 
+    private void AdjustMenuSelectionValue(float direction)
+    {
+        if (_menuContext != MenuContext.Tuning) { return; }
+
+        int paramCount = TuningEntries.Length;
+        if (_menuSelection < 0 || _menuSelection >= paramCount) { return; }
+
+        ParameterEntry entry = TuningEntries[_menuSelection];
+        float current = entry.Getter(_tuningProfile);
+        float next = Math.Clamp(current + (entry.Step * direction), entry.Min, entry.Max);
+        if (Math.Abs(next - current) <= 0.0001f) { return; }
+
+        entry.Setter(_tuningProfile, next);
+        ApplyTuningToWorld();
+        SetStatus($"Tuning updated: {entry.Label} = {next:0.##}");
+    }
+
     private void ActivateMenuSelection()
     {
         if (_tuiRenderer is null || !_tuiRenderer.ShowMenuOverlay) { return; }
+
+        if (_menuContext == MenuContext.Tuning)
+        {
+            ActivateTuningSelection();
+            return;
+        }
 
         switch (_menuSelection)
         {
@@ -360,27 +417,110 @@ public sealed class Program
                 LoadState();
                 break;
             case 4:
-                TogglePerformanceOverlay();
+                OpenTuningMenu();
                 break;
             case 5:
-                ToggleHelp();
+                TogglePerformanceOverlay();
                 break;
             case 6:
-                ToggleGrid();
+                ToggleHelp();
                 break;
             case 7:
-                ToggleFollowSelected();
+                ToggleGrid();
                 break;
             case 8:
-                _renderer?.ResetCamera();
+                ToggleFollowSelected();
                 break;
             case 9:
-                ResetSimulation();
+                _renderer?.ResetCamera();
                 break;
             case 10:
+                ResetSimulation();
+                break;
+            case 11:
                 Exit();
                 break;
         }
+    }
+
+    private void OpenTuningMenu()
+    {
+        _menuContext = MenuContext.Tuning;
+        _menuSelection = ClampMenuSelection(0, BuildMenuItems().Length);
+    }
+
+    private void ActivateTuningSelection()
+    {
+        int paramCount = TuningEntries.Length;
+        int balancedIndex = paramCount;
+        int chaoticIndex = paramCount + 1;
+        int stableIndex = paramCount + 2;
+        int exportIndex = paramCount + 3;
+        int importIndex = paramCount + 4;
+        int backIndex = paramCount + 5;
+
+        if (_menuSelection >= 0 && _menuSelection < paramCount)
+        {
+            AdjustMenuSelectionValue(+1f);
+            return;
+        }
+
+        if (_menuSelection == balancedIndex)
+        {
+            _tuningProfile = TuningPresets.Balanced();
+            ApplyTuningToWorld();
+            SetStatus("Preset applied: Balanced");
+            return;
+        }
+
+        if (_menuSelection == chaoticIndex)
+        {
+            _tuningProfile = TuningPresets.Chaotic();
+            ApplyTuningToWorld();
+            SetStatus("Preset applied: Chaotic");
+            return;
+        }
+
+        if (_menuSelection == stableIndex)
+        {
+            _tuningProfile = TuningPresets.Stable();
+            ApplyTuningToWorld();
+            SetStatus("Preset applied: Stable");
+            return;
+        }
+
+        if (_menuSelection == exportIndex)
+        {
+            string path = _tuningFileStore.Export(TuningDirectory, _tuningProfile);
+            SetStatus($"Params exported: {Path.GetFileName(path)}");
+            return;
+        }
+
+        if (_menuSelection == importIndex)
+        {
+            if (!_tuningFileStore.TryImportLatest(TuningDirectory, out SimulationTuningProfile imported, out string path, out string error))
+            {
+                SetStatus(error);
+                return;
+            }
+
+            _tuningProfile = imported;
+            ApplyTuningToWorld();
+            SetStatus($"Params imported: {Path.GetFileName(path)}");
+            return;
+        }
+
+        if (_menuSelection == backIndex)
+        {
+            _menuContext = MenuContext.Main;
+            _menuSelection = 0;
+        }
+    }
+
+    private void ApplyTuningToWorld()
+    {
+        if (_world is null) { return; }
+        WorldTuningApplier.Apply(_world, _tuningProfile);
     }
 
     private void ToggleFollowSelected()
@@ -430,6 +570,7 @@ public sealed class Program
 
         _world = loaded;
         _simulation = FactorySimulation.GenerateDefaultSimulation(_world);
+        ApplyTuningToWorld();
         _showGrid = _world.DebugDrawGrid;
         _tickAccumulator = 0d;
         _lastLoopTimestamp = Stopwatch.GetTimestamp();
@@ -447,6 +588,7 @@ public sealed class Program
         world.DebugDrawGrid = _showGrid;
         _world = world;
         _simulation = FactorySimulation.GenerateDefaultSimulation(world);
+        ApplyTuningToWorld();
         _tickAccumulator = 0d;
         _lastLoopTimestamp = Stopwatch.GetTimestamp();
         _lastAutosaveTick = world.Tick;
@@ -524,7 +666,8 @@ public sealed class Program
     {
         string speed = $"Speed:{SpeedLevels[_speedIndex]:0.##}x";
         string mode = _rendererMode == RendererMode.Tui ? "Renderer:TUI" : "Renderer:Legacy";
-        string baseText = _simulation?.IsStopped == true ? $"{speed} Paused {mode}" : $"{speed} {mode}";
+        string tuning = $"Preset:{_tuningProfile.ProfileName}";
+        string baseText = _simulation?.IsStopped == true ? $"{speed} Paused {mode} {tuning}" : $"{speed} {mode} {tuning}";
         string saveInfo = _saves.Count > 0 && _selectedSaveIndex >= 0 && _selectedSaveIndex < _saves.Count
             ? $"Save:{_selectedSaveIndex + 1}/{_saves.Count} {_saves[_selectedSaveIndex].Name}"
             : "Save:None";
@@ -819,12 +962,18 @@ public sealed class Program
 
     private string[] BuildMenuItems()
     {
+        if (_menuContext == MenuContext.Tuning)
+        {
+            return BuildTuningMenuItems();
+        }
+
         return
         [
             _simulation?.IsStopped == true ? "Resume simulation" : "Pause simulation",
             "Step one tick",
             "Save world",
             "Load selected save",
+            "Parameter tuning...",
             _showPerformanceOverlay ? "Hide performance panel" : "Show performance panel",
             _showHelp ? "Hide help panel" : "Show help panel",
             _showGrid ? "Hide grid" : "Show grid",
@@ -835,6 +984,26 @@ public sealed class Program
         ];
     }
 
+    private string[] BuildTuningMenuItems()
+    {
+        string[] items = new string[TuningEntries.Length + 6];
+        for (int i = 0; i < TuningEntries.Length; i++)
+        {
+            ParameterEntry entry = TuningEntries[i];
+            float value = entry.Getter(_tuningProfile);
+            items[i] = $"{entry.Category} | {entry.Label}: {value:0.##}";
+        }
+
+        int baseIndex = TuningEntries.Length;
+        items[baseIndex] = "Preset: Balanced";
+        items[baseIndex + 1] = "Preset: Chaotic";
+        items[baseIndex + 2] = "Preset: Stable";
+        items[baseIndex + 3] = "Export params to file";
+        items[baseIndex + 4] = "Import latest params file";
+        items[baseIndex + 5] = "Back to command menu";
+        return items;
+    }
+
     private static int ClampMenuSelection(int currentSelection, int itemCount)
     {
         if (itemCount <= 0) { return -1; }
@@ -842,4 +1011,19 @@ public sealed class Program
         if (currentSelection >= itemCount) { return itemCount - 1; }
         return currentSelection;
     }
+
+    private enum MenuContext
+    {
+        Main,
+        Tuning
+    }
+
+    private readonly record struct ParameterEntry(
+        string Category,
+        string Label,
+        float Step,
+        float Min,
+        float Max,
+        Func<SimulationTuningProfile, float> Getter,
+        Action<SimulationTuningProfile, float> Setter);
 }
