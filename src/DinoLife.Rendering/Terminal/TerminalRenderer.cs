@@ -8,7 +8,7 @@ namespace DinoLife.Rendering.Terminal;
 /// <summary>
 /// Simple terminal renderer using a double-buffered character grid.
 /// </summary>
-public sealed class TerminalRenderer : IRenderer
+public sealed class TerminalRenderer : IInteractiveRenderer
 {
     private const int TopHudHeight = 1;
     private const int OverlayHeight = 8;
@@ -455,7 +455,8 @@ public sealed class TerminalRenderer : IRenderer
             "S: Save | L: Load selected | J/K: Prev/Next save | B: Refresh saves",
             "R: Reset | Q/Esc: Quit | P: Perf Overlay | Autosave every N ticks",
             "Camera: A/W/D + Arrows + Home | Follow: F | Select: Tab/[ ]",
-            "Grid: G"
+            "Grid: G",
+            "TUI mode: M open/close command menu | Enter activate"
         ];
 
         int yLine = panelTop;

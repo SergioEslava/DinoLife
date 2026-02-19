@@ -74,6 +74,12 @@ public sealed class InputHandler
             case ConsoleKey.H:
                 command = new InputCommand(InputCommandType.ToggleHelp);
                 return true;
+            case ConsoleKey.M:
+                command = new InputCommand(InputCommandType.ToggleMenu);
+                return true;
+            case ConsoleKey.Enter:
+                command = new InputCommand(InputCommandType.MenuActivate);
+                return true;
 
             // Camera controls still available from milestone 3.6
             case ConsoleKey.LeftArrow:
@@ -147,5 +153,7 @@ public enum InputCommandType
     ToggleGrid,
     BrowsePreviousSave,
     BrowseNextSave,
-    RefreshSaveBrowser
+    RefreshSaveBrowser,
+    ToggleMenu,
+    MenuActivate
 }
